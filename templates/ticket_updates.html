@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Updates for Ticket {{ ticket[1] }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #f0f2f5;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            text-align: center;
+            color: #2563eb;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            color: #374151;
+            font-size: 1.4rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+
+        .update-item {
+            background-color: #f8fafc;
+            border: 1px solid #e5e7eb;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .update-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .update-item strong {
+            display: inline-block;
+            width: 120px;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .update-item .date {
+            font-style: italic;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            margin-top: 2rem;
+        }
+
+        .back-btn {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .back-btn:hover {
+            background-color: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6b7280;
+            padding: 2rem;
+            font-style: italic;
+        }
+        .flash-messages {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .flash-messages.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .flash-messages.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash-messages ul {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .flash-messages li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Daily Updates for Ticket: {{ ticket[1] }}</h2>
+        <h3>Project: {{ ticket[1] }}</h3>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            <ul>
+                {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
+        
+        {% if daily_updates %}
+        <div>
+            {% for update in daily_updates %}
+            <div class="update-item">
+                <div class="date"><strong>Date:</strong> {{ update[2] }}</div>
+                <div><strong>Description:</strong> {{ update[3] }}</div>
+                <div><strong>Stage:</strong> {{ update[4] }}</div>
+                <div><strong>State:</strong> {{ update[5] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No updates found for this ticket.</p>
+        {% endif %}
+
+        <a href="{{ url_for('home') }}#ticket-details" class="btn back-btn">Back to Home</a>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,63 @@
+<div class="project-details">
+    <h3>Project Details</h3>
+
+    {% if project %}
+    <div class="project-info">
+        <p><strong>Project Name:</strong> {{ project[3] }}</p>
+        <!-- <p><strong>Description:</strong> {{ project[4] or 'No description available' }}</p> -->
+        <p><strong>Status:</strong> {{ project[7] }}</p>
+        <p><strong>Project Created On:</strong> {{ project_creation_date }}</p> <!-- Project Creation Date -->
+    </div>
+
+    <div class="assigned-members">
+        <h4>Assigned Members for {{ project[3] }}</h4>
+        {% if team_member_names %}
+        <ul>
+            {% for i in range(team_member_names|length) %}
+            <li>
+                <strong>{{ team_member_names[i] }}</strong> ({{ team_member_emails[i] }})
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No team members assigned to this project.</p>
+        {% endif %}
+    </div>
+
+    <div class="tickets-section">
+        <h4>Tickets for {{ project[3] }}</h4>
+        {% if tickets %}
+        {% for ticket in tickets %}
+        <div class="ticket">
+            <!-- <p><strong>Created by:</strong> {{ ticket[1] }}</p> Assuming ticket[1] is the creator's email -->
+            <h5>Ticket #{{ ticket[0] }}</h5>
+            <p><strong>Module:</strong> {{ ticket[2] }}</p>
+            <p><strong>Description:</strong> {{ ticket[3] }}</p>
+            <p><strong>Start Date:</strong> {{ ticket[4] }}</p>
+            <p><strong>Expected Date:</strong> {{ ticket[5] }}</p>
+            <p><strong>Created On:</strong> {{ ticket[6] }}</p> <!-- Ticket Creation Date -->
+            <p><strong>Status:</strong> {{ 'Closed' if ticket[8] else 'Open' }}</p>
+
+            {% if ticket[0] in ticket_updates %}
+            <div class="updates">
+                <h6>Updates for Ticket #{{ ticket[0] }}</h6>
+                {% for update in ticket_updates[ticket[0]] %}
+                <div class="update">
+                    <p><strong>Date:</strong> {{ update[2] }}</p>
+                    <p><strong>Description:</strong> {{ update[3] }}</p>
+                    <p><strong>Stage:</strong> {{ update[4] }}</p>
+                    <p><strong>State:</strong> {{ update[5] }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p>No tickets found for this project.</p>
+        {% endif %}
+    </div>
+    {% else %}
+    <p>Project details not found.</p>
+    {% endif %}
+</div>

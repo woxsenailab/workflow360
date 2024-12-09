@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Details</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        h2 {
+            text-align: center;
+            color: #1a73e8;
+            margin: 30px 0;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 90%;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .update-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .update-box p {
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+
+        .update-box p strong {
+            color: #1a73e8;
+            font-weight: 600;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: 500;
+            color: #444;
+        }
+
+        textarea,
+        input[type="text"],
+        select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus,
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #1557b0;
+            transform: translateY(-1px);
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .back-link a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: #1557b0;
+        }
+
+        /* Status badges */
+        .state-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .in-progress {
+            background-color: #fff3dc;
+            color: #b25e00;
+        }
+
+        .completed {
+            background-color: #e6f4ea;
+            color: #137333;
+        }
+        .flash-messages {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .flash-messages.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .flash-messages.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash-messages ul {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .flash-messages li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Ticket Details</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            <ul>
+                {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
+        
+    <div class="container">
+        <h3>Daily Updates</h3>
+
+        {% if daily_updates %}
+        <div class="update-box">
+            {% for update in daily_updates %}
+            <p><strong>{{ update[2] }} ({{ update[4] }}):</strong> {{ update[3] }}</p>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No updates yet.</p>
+        {% endif %}
+
+        {% if closed_date is none or today_date <= closed_date %} 
+            <form method="POST">
+                <label for="daily_description">Add Your Daily Update:</label>
+                <textarea name="daily_description" required></textarea>
+
+                <label for="stage">Stage:</label>
+                <input type="text" name="stage" required>
+
+                <label for="state">State:</label>
+                <select name="state" required>
+                    <option value="">Select State</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                </select>
+
+                <button type="submit">Add Daily Update</button>
+            </form>
+            {% else %}
+            <p>This ticket has expired. No further updates can be made.</p>
+            {% endif %}
+    </div>
+
+    <div class="back-link">
+        <a href="{{ url_for('home') }}">Back to Home</a>
+    </div>
+
+</body>
+
+</html>

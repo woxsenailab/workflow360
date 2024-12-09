@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-hover: #3046c9;
+            --text: #2b2d42;
+            --text-light: #6c757d;
+            --background: #f8f9fa;
+            --white: #ffffff;
+            --border: #e9ecef;
+            --error: #ef233c;
+            --success: #2ecc71;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f6f8fd 0%, #f1f4f9 100%);
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background-color: var(--white);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            color: var(--text);
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 15px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background-color: var(--white);
+            transition: all 0.3s ease;
+            color: var(--text);
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        p {
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 24px;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: var(--primary-hover);
+        }
+
+        .flash-messages {
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+        }
+
+        .flash-messages.success {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: var(--success);
+        }
+
+        .flash-messages.error {
+            background-color: rgba(239, 35, 60, 0.1);
+            color: var(--error);
+        }
+
+        .flash-messages ul {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .flash-messages li {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Signup</h2>
+
+        <!-- Display Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            <ul>
+                {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('signup') }}" method="POST">
+            <div class="input-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="input-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="input-group">
+                <label for="team_name">Team Name:</label>
+                <select id="team_name" name="team_name" required>
+                    <option value="" disabled selected>Select your team</option>
+                    <option value="AI">AI</option>
+                    <option value="Metaverse">Metaverse</option>
+                    <option value="Blockchain">Blockchain</option>
+                    <option value="Robotics">Robotics</option>
+                    <option value="Full Stack">Full Stack</option>
+                    <option value="Others">Others</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="role">Role:</label>
+                <select id="role" name="role" required>
+                    <option value="" disabled selected>Select your role</option>
+                    <option value="mentor">Mentor</option>
+                    <option value="team_member">Team Member</option>
+                    <option value="researchers">Researchers</option>
+                </select>
+            </div>
+            <button type="submit">Sign Up</button>
+        </form>
+
+        <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+    </div>
+</body>
+
+</html>

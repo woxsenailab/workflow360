@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fc;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            margin-top: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .welcome-banner {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ticket-section {
+            margin-bottom: 40px;
+        }
+
+        .ticket-card {
+            background: white;
+            border-left: 5px solid #4CAF50;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .ticket-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .ticket-id {
+            background: #4CAF50;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .ticket-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .ticket-info {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        .ticket-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-update {
+            background: #007BFF;
+            color: white;
+        }
+
+        .btn-close {
+            background: #FF5733;
+            color: white;
+        }
+
+        .closed-tickets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        h3 {
+            color: #4CAF50;
+            font-weight: 900;
+            text-decoration: underline;
+            text-decoration-color: #4CAF50;
+        }
+
+        .project-name {
+            font-weight: 900;
+            color: #4CAF50;
+        }
+
+        .project-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .project-title {
+            font-weight: 900;
+            color: #4CAF50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            margin-top: 40px;
+        }
+        .flash-messages {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .flash-messages.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .flash-messages.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash-messages ul {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .flash-messages li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Welcome to Your Home Page</h1>
+        {% if 'name' in session %}
+        <div class="welcome-banner">
+            <h2>Welcome back, {{ session['name'] }}!</h2>
+            <div class="actions">
+                <a href="{{ url_for('logout') }}" class="btn btn-close">Logout</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            <ul>
+                {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
+        
+        <div class="ticket-section">
+            <h3>Assigned Projects</h3>
+            {% if assigned_projects %}
+            {% for project in assigned_projects %}
+            <div class="ticket-card">
+                <div class="ticket-header">
+                    <span class="project-name">{{ project[2] }}</span>
+                    <span class="ticket-id">Project #{{ project[0] }}</span>
+                </div>
+                <div class="ticket-content">
+                    <div class="ticket-info-column">
+                        <div class="ticket-info">
+                            <strong>Project Name:</strong>
+                            <p>{{ project[3] }}</p>
+                        </div>
+                        <div class="ticket-info">
+                            <strong>Description:</strong>
+                            <p>{{ project[4] }}</p>
+                        </div>
+                    </div>
+                    <div class="ticket-info-column">
+                        <div class="ticket-info">
+                            <strong>Assigned By:</strong> {{ project[1] }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="no-tickets">No projects assigned yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="ticket-section">
+            <h3>Current Tickets</h3>
+            {% if current_tickets or current_admin_tickets %}
+                {% if current_tickets %}
+                    {% for ticket in current_tickets %}
+                    <div class="ticket-card">
+                        <div class="ticket-header">
+                            <span class="project-name">{{ ticket[1] }}</span>
+                            <span class="ticket-id">Ticket #{{ ticket[0] }}</span>
+                        </div>
+                        <div class="ticket-content">
+                            <div class="ticket-info-column">
+                                <div class="ticket-info">
+                                    <strong>Project Description:</strong>
+                                    <p>{{ ticket[3] }}</p>
+                                </div>
+                                <div class="ticket-info">
+                                    <strong>Project Module:</strong>
+                                    <p>{{ ticket[2] }}</p>
+                                </div>
+                            </div>
+                            <div class="ticket-info-column">
+                                <div class="ticket-info">
+                                    <strong>Start Date:</strong> {{ ticket[4] }}
+                                </div>
+                                <div class="ticket-info">
+                                    <strong>Expected Date:</strong> {{ ticket[5] }}
+                                </div>
+                                <div class="ticket-info">
+                                    <strong>Ticket Created:</strong> {{ ticket[6] }}
+                                </div>
+                                <div class="ticket-info">
+                                    <strong>Valid Until:</strong> {{ ticket[7] }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ticket-actions">
+                            <a href="{{ url_for('ticket_details', ticket_id=ticket[0]) }}" class="btn btn-update">Add Daily Update</a>
+                            <form action="{{ url_for('close_ticket', ticket_id=ticket[0]) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-close">Close Ticket</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+    
+                {% if current_admin_tickets %}
+                    {% for ticket in current_admin_tickets %}
+                    <div class="ticket-card">
+                        <div class="ticket-header">
+                            <span class="project-name">{{ ticket[1] }}</span>
+                            <span class="ticket-id">Admin Created Ticket #{{ ticket[0] }}</span>
+                        </div>
+                        <div class="ticket-content">
+                            <div class="ticket-info-column">
+                                <div class="ticket-info">
+                                    <strong>Description:</strong>
+                                    <p>{{ ticket[3] }}</p>
+                                </div>
+                                <div class="ticket-info">
+                                    <strong>Start Date:</strong>
+                                    <p>{{ ticket[4] }}</p>
+                                </div>
+                            </div>
+                            <div class="ticket-info-column">
+                                <div class="ticket-info">
+                                    <strong>Expected Date:</strong>
+                                    <p>{{ ticket[5] }}</p>
+                                </div>
+                                <div class="ticket-info">
+                                    <strong>Created On:</strong>
+                                    <p>{{ ticket[6] }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ticket-actions">
+                            <a href="{{ url_for('admin_ticket_details', ticket_id=ticket[0], source='home') }}" class="btn btn-update">Add Daily Update</a>
+                            <form action="{{ url_for('admin_close_ticket', ticket_id=ticket[0], source='home') }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-close">Close Ticket</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% else %}
+                <p>No current tickets available.</p>
+            {% endif %}
+        </div>
+    
+        <div class="ticket-section">
+            <h3>Closed Tickets</h3>
+            <div class="closed-tickets">
+                {% if closed_tickets or closed_admin_tickets %}
+                    {% if closed_tickets %}
+                        {% for project, tickets in closed_tickets.items() %}
+                        <div class="project-card">
+                            <div class="project-title">{{ project }}</div>
+                            {% for ticket in tickets %}
+                            <div class="ticket-info">
+                                <strong>Ticket #{{ ticket[0] }}</strong>
+                                <p>{{ ticket[3] }}</p>
+                                <div class="ticket-details">
+                                    <p><strong>Module:</strong> {{ ticket[2] }}</p>
+                                    <p><strong>Ticket Created:</strong> {{ ticket[4] }}</p>
+                                    <p><strong>Days Used:</strong> {{ ticket[9] }} days</p>
+                                    <p><strong>Ticket Closed:</strong> {{ ticket[8] if ticket[8] else ticket[7] }}</p>
+                                </div>
+                                <div class="stages">
+                                    {% for stage in stages_for_closed_tickets[ticket[0]] %}
+                                    <p class="stage">{{ stage }}</p>
+                                    {% endfor %}
+                                </div>
+                                <a href="{{ url_for('ticket_updates', ticket_id=ticket[0]) }}" class="btn btn-update">View Updates</a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+    
+                    {% if closed_admin_tickets %}
+                        {% for project, tickets in closed_admin_tickets.items() %}
+                        <div class="project-card">
+                            <div class="project-title">{{ project }}</div>
+                            {% for ticket in tickets %}
+                            <div class="ticket-info">
+                                <strong>Admin Created Ticket #{{ ticket[0] }}</strong>
+                                <p>{{ ticket[3] }}</p>
+                                <div class="ticket-details">
+                                    <p><strong>Closed On:</strong> {{ ticket[7] }}</p>
+                                    <p><strong>Duration:</strong> {{ ticket[9] }} days</p>
+                                </div>
+                                <a href="{{ url_for('admin_ticket_updates', ticket_id=ticket[0], source='home') }}" class="btn btn-update">View Updates</a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% else %}
+                    <p>No closed tickets available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% else %}
+        <div class="welcome-banner">
+            <h2>Welcome to Ticket Management System</h2>
+            <div class="actions">
+                <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+                <a href="{{ url_for('signup') }}" class="btn btn-update">Signup</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer>
+        <!-- <p>&copy; 2024 Your Company. All Rights Reserved.</p> -->
+    </footer>
+</body>
+
+</html>

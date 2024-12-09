@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --light: #f8f9fa;
+            --text: #2c3e50;
+            --border: #eaeaea;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light);
+            color: var(--text);
+        }
+
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            padding: 20px;
+            color: white;
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .sidebar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px;
+            background-color: var(--light);
+        }
+
+        .user-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .user-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .attendance-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .attendance-table th {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            font-weight: 500;
+            text-align: left;
+        }
+
+        .attendance-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-bar {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 30px;
+            padding: 12px 25px;
+            width: 100%;
+            max-width: 400px;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .search-bar:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            outline: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 60%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--text);
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: var(--accent);
+        }
+
+        select {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        select:hover {
+            background: var(--secondary);
+        }
+
+        h2,
+        h3,
+        h4 {
+            color: var(--text);
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .modal-content {
+                width: 90%;
+            }
+        }
+
+        /* Create Tickets Form Styling */
+        #create-tickets form {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        #create-tickets label {
+            display: block;
+            margin: 15px 0 5px;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        #create-tickets input[type="text"],
+        #create-tickets input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        #create-tickets input[type="text"]:focus,
+        #create-tickets input[type="date"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            outline: none;
+        }
+
+        #create-tickets select {
+            width: 100%;
+            margin: 0 0 15px;
+            background: white;
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        #create-tickets select:hover {
+            background: white;
+            border-color: var(--accent);
+        }
+
+        #create-tickets input[type="submit"] {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        #create-tickets input[type="submit"]:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #create-tickets textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            resize: vertical;
+        }
+
+        #create-tickets textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            outline: none;
+        }
+
+        .project-tickets {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .ticket-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .ticket-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.3s ease;
+        }
+
+        .ticket-item:last-child {
+            border-bottom: none;
+        }
+
+        .ticket-item:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .view-details {
+            color: var(--accent);
+            text-decoration: underline;
+            margin-left: 10px;
+            transition: color 0.3s ease;
+        }
+
+        .view-details:hover {
+            color: #2980b9;
+        }
+
+        .flash-messages {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .flash-messages.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .flash-messages.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash-messages ul {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .flash-messages li {
+            margin-bottom: 5px;
+        }
+
+        .date-error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: -10px;
+            margin-bottom: 15px;
+        }
+
+        #create-tickets input[type="date"] {
+            min-width: 200px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Admin Menu</h2>
+        <a href="#user-details" onclick="showSection('user-details')">User Details</a>
+        <a href="#ticket-details" onclick="showSection('ticket-details')">Ticket Details</a>
+        <a href="#create-tickets" onclick="showSection('create-tickets')">Create Ticket</a>
+        <a href="#assigned-tickets" onclick="showSection('assigned-tickets')">Admin Assigned Ticket</a>
+        <a href="#attendance-details" onclick="showSection('attendance-details')">Attendance Records</a>
+        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+    </div>
+
+    <div class="content">
+        <h2>Admin Dashboard</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            <ul>
+                {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
+        <div id="user-details" class="section">
+            <h3>User Details</h3>
+            {% for team_name, team in teams.items() %}
+            <div class="user-section">
+                <h4>Team: {{ team_name }}</h4>
+                <p>Mentor: {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
+                <p>Members: {% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Replace the existing ticket details section with this updated version -->
+        <div id="ticket-details" class="section" style="display:none;">
+            <h3>Ticket Details</h3>
+            <input type="text" id="searchBar" class="search-bar" placeholder="Search team by name..."
+                oninput="searchUser()">
+
+            {% for team_name, team in teams.items() %}
+            <div class="user-section">
+                <h4>Team: {{ team_name }}</h4>
+                <p>Mentor: {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
+                <h5>Projects:</h5>
+
+                <!-- Create a set of unique project names -->
+                {% set unique_projects = {} %}
+                {% for member in team.members %}
+                {% for project_info, tickets in user_tickets[member[2]].items() %}
+                {% if project_info not in unique_projects %}
+                {% set _ = unique_projects.update({project_info: []}) %}
+                {% endif %}
+                {% set _ = unique_projects[project_info].append(member[2]) %}
+                {% endfor %}
+                {% endfor %}
+
+                <!-- Display unique projects with all associated members -->
+                <ul>
+                    {% for project_info, member_emails in unique_projects.items() %}
+                    <li>
+                        <strong>{{ project_info }}</strong>
+                        <ul>
+                            {% for member_email in member_emails %}
+                            <li>
+                                <a href="#"
+                                    onclick="showProjectDetails('{{ project_info }}', '{{ team_name }}', '{{ member_email }}')">
+                                    View tickets by {{ member_email }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="create-tickets" class="section" style="display:none;">
+            <h3>Assign Tickets</h3>
+            <form method="POST" action="{{ url_for('create_ticket_admin') }}">
+                <label for="team_name">Select Team:</label>
+                <select id="team_name" name="team_name" onchange="updateMentors()">
+                    <option value="">Select a team</option>
+                    {% for team_name, team in teams.items() %}
+                    <option value="{{ team_name }}">{{ team_name }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="mentor_name">Select Mentor/Member:</label>
+                <select id="mentor_name" name="mentor_name" onchange="updateHiddenEmail()">
+                    <option value="">Select Mentor/Member</option>
+                    <!-- Mentors will be populated based on the selected team -->
+                </select>
+
+                <input type="hidden" id="mentor_email" name="mentor_email" value="">
+
+                <label for="project_name">Project Name:</label>
+                <input type="text" id="project_name" name="project_name" required>
+
+                <label for="description">Description:</label>
+                <textarea name="description" required></textarea>
+
+                <label for="module_info">Project Module:</label>
+                <input type="text" name="module_info" id="module_info" enabled><br>
+
+                <label for="start_date">Ticket Start Date:</label>
+                <input type="date" id="start_date" name="start_date" required>
+
+                <label for="end_date">Ticket End Date:</label>
+                <input type="date" id="end_date" name="end_date" required>
+
+                <input type="submit" value="Assign Ticket">
+            </form>
+        </div>
+
+        <div id="assigned-tickets" class="section" style="display:none;">
+            <h3>Admin Assigned Tickets</h3>
+            {% for user_email, data in admin_tickets.items() %}
+            <div class="user-section">
+                <h4>{{ data['role'].capitalize() }}: {{ user_email }}</h4>
+                {% if data['tickets'] %}
+                <ul class="ticket-list">
+                    {% for ticket in data['tickets'] %}
+                    <li class="ticket-item">
+                        <strong>{{ ticket[1] }}</strong>: {{ ticket[3] }}
+                        <br>
+                        <small>Created: {{ ticket[6] }}</small>
+                        <a href="#" class="view-details"
+                            onclick="showAdminTicketDetails('{{ ticket[0] }}', '{{ ticket[10] }}')">View Details</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>No tickets assigned.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="ticketModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="ticketDetails"></div>
+            </div>
+        </div>
+
+        <div id="attendance-details" class="section" style="display:none;">
+            <h3>Attendance Records</h3>
+            <div>
+                <label for="yearSelect">Year:</label>
+                <select id="yearSelect" onchange="updateAttendance()">
+                    {% for year in range(2024, 2026) %}
+                    <option value="{{ year }}" {% if year==selected_year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="monthSelect">Month:</label>
+                <select id="monthSelect" onchange="updateAttendance()">
+                    <option value="1" {% if selected_month==1 %}selected{% endif %}>January</option>
+                    <option value="2" {% if selected_month==2 %}selected{% endif %}>February</option>
+                    <option value=" 3" {% if selected_month==3 %}selected{% endif %}>March</option>
+                    <option value="4" {% if selected_month==4 %}selected{% endif %}>April</option>
+                    <option value="5" {% if selected_month==5 %}selected{% endif %}>May</option>
+                    <option value="6" {% if selected_month==6 %}selected{% endif %}>June</option>
+                    <option value="7" {% if selected_month==7 %}selected{% endif %}>July</option>
+                    <option value="8" {% if selected_month==8 %}selected{% endif %}>August</option>
+                    <option value="9" {% if selected_month==9 %}selected{% endif %}>September</option>
+                    <option value="10" {% if selected_month==10 %}selected{% endif %}>October</option>
+                    <option value="11" {% if selected_month==11 %}selected{% endif %}>November</option>
+                    <option value="12" {% if selected_month==12 %}selected{% endif %}>December</option>
+                </select>
+            </div>
+            <input type="text" id="attendanceSearchBar" class="search-bar" placeholder="Search by email or date..."
+                oninput="searchAttendance()">
+
+            <table class="attendance-table" id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Date</th>
+                        <th>Login Time</th>
+                        <th>Logout Time</th>
+                        <th>Duration Worked</th>
+                    </tr>
+                </thead>
+                <tbody id="attendanceTableBody">
+                    {% for record in attendance_records %}
+                    <tr>
+                        <td>{{ record[1] }}</td> <!-- Email -->
+                        <td>{{ record[4] }}</td> <!-- Date -->
+                        <td>
+                            {% for time in record[2].split(',') %}
+                            {{ loop.index }}) {{ time }}<br>
+                            {% endfor %}
+                        </td> <!-- Login Time -->
+                        <td>
+                            {% for time in record[3].split(',') %}
+                            {{ loop.index }}) {{ time }}<br>
+                            {% endfor %}
+                        </td> <!-- Logout Time -->
+                        <td>{{ record[5] }}</td> <!-- Duration -->
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <div class="modal" id="projectDetailsModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalUpdatesContent"></div>
+        </div>
+    </div>
+
+    <script>
+        function showSection(section) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(s => {
+                s.style.display = 'none';
+            });
+            document.getElementById(section).style.display = 'block';
+        }
+
+        function showProjectDetails(projectInfo, teamName, memberEmail) {
+            const modal = document.getElementById('projectDetailsModal');
+            const modalContent = document.getElementById('modalUpdatesContent');
+
+            modalContent.innerHTML = '<p>Loading project details...</p>';
+            modal.classList.add('show');
+
+            fetch(`/admin/project_details/${encodeURIComponent(projectInfo)}/${encodeURIComponent(teamName)}/${encodeURIComponent(memberEmail)}`)
+                .then(response => response.json())
+                .then(data => {
+                    modalContent.innerHTML = `
+                    <h4>Project: ${data.project_info}</h4>
+                    <p>Description: ${data.description}</p>
+                    <p>Status: ${data.status}</p>
+                    <h5>Assigned Team Members:</h5>
+                    <ul>${data.team_member_names.map(name => `<li>${name}</li>`).join('')}</ul>
+                    <h5>Tickets:</h5>
+                    ${data.tickets.length ? `
+                        <ul>${data.tickets.map(ticket => `
+                            <li>
+                                <strong>${ticket.module_info}:</strong> ${ticket.description}
+                                <br>
+                                <em>Created on: ${ticket.ticket_creation_time}</em>
+                            </li>
+                        `).join('')}</ul>
+                    ` : '<p>No tickets assigned for this project.</p>'}
+                `;
+                })
+                .catch(error => {
+                    console.error('Error fetching project details:', error);
+                    modalContent.innerHTML = '<p>Error loading project details</p>';
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('projectDetailsModal').classList.remove('show');
+        }
+
+        function searchUser() {
+            const searchQuery = document.getElementById('searchBar').value.toLowerCase();
+            const users = document.querySelectorAll('.user-section');
+            users.forEach(user => {
+                const userName = user.textContent.toLowerCase();
+                if (userName.includes(searchQuery)) {
+                    user.style.display = 'block'; // Show user if matched
+                } else {
+                    user.style.display = 'none'; // Hide user if no match
+                }
+            });
+        }
+
+        function showProjectDetails(projectInfo, teamName, memberEmail) {
+            const modal = document.getElementById('projectDetailsModal');
+            const modalContent = document.getElementById('modalUpdatesContent');
+
+            modalContent.innerHTML = '<p>Loading project details...</p>';
+            modal.classList.add('show');
+
+            fetch(`/admin/project_details/${encodeURIComponent(projectInfo)}/${encodeURIComponent(teamName)}/${encodeURIComponent(memberEmail)}`)
+                .then(response => response.text())
+                .then(html => {
+                    modalContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    modalContent.innerHTML = '<p>Error loading project details</p>';
+                });
+        }
+
+        function searchAttendance() {
+            const query = document.getElementById('attendanceSearchBar').value.toLowerCase();
+            const rows = document.querySelectorAll('#attendanceTableBody tr');
+
+            rows.forEach(row => {
+                const email = row.cells[0].textContent.toLowerCase(); // Email in the first cell
+                const date = row.cells[1].textContent.toLowerCase(); // Date in the second cell
+
+                const matchEmail = email.includes(query);
+                const matchDate = date.includes(query); // Check if the query matches the date
+
+                if (matchEmail || matchDate) {
+                    row.style.display = ''; // Show row if either matches
+                } else {
+                    row.style.display = 'none'; // Hide row if no match
+                }
+            });
+        }
+
+        function changeYear() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            window.location.href = `?year=${year}&month=${month}`;
+        }
+
+        function changeMonth() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            window.location.href = `?year=${year}&month=${month}`;
+        }
+
+        document.getElementById('monthSelect').addEventListener('change', updateAttendance);
+        document.getElementById('yearSelect').addEventListener('change', updateAttendance);
+
+        function updateAttendance() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+
+            fetch(`/admin/attendance?year=${year}&month=${month}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const tableBody = document.getElementById('attendanceTableBody');
+                    tableBody.innerHTML = ''; // Clear existing records
+
+                    if (data.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="5">No records found for this month.</td></tr>';
+                        return;
+                    }
+
+                    data.forEach(record => {
+                        const loginTimes = record.login_time.split(','); // Split login times by comma
+                        const logoutTimes = record.logout_time.split(','); // Split logout times by comma
+
+                        const loginTimeHtml = loginTimes.map((time, index) => `${index + 1}) ${time}`).join('<br>'); // Create HTML for login times
+                        const logoutTimeHtml = logoutTimes.map((time, index) => `${index + 1}) ${time}`).join('<br>'); // Create HTML for logout times
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                    <td>${record.email}</td>
+                    <td>${record.date}</td>
+                    <td>${loginTimeHtml}</td>
+                    <td>${logoutTimeHtml}</td>
+                    <td>${record.duration_worked}</td>
+                `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching attendance records:', error);
+                    const tableBody = document.getElementById('attendanceTableBody');
+                    tableBody.innerHTML = '<tr><td colspan="5">Error loading records. Please try again later.</td></tr>';
+                });
+        }
+
+        function updateMentors() {
+            const teamSelect = document.getElementById('team_name');
+            const mentorSelect = document.getElementById('mentor_name');
+            const selectedTeam = teamSelect.value;
+
+            // Clear the mentor dropdown
+            mentorSelect.innerHTML = '<option value="">Select Mentor/Member</option>';
+
+            // Fetch mentors and team members for the selected team
+            if (selectedTeam) {
+                fetch(`/get_mentors_and_members/${selectedTeam}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Populate mentors
+                        data.mentors.forEach(mentor => {
+                            const option = document.createElement('option');
+                            option.value = mentor.email;
+                            option.textContent = `${mentor.name} (Mentor)`;
+                            mentorSelect.appendChild(option);
+                        });
+
+                        // Populate team members
+                        data.members.forEach(member => {
+                            const option = document.createElement('option');
+                            option.value = member.email;
+                            option.textContent = `${member.name} (Team Member)`;
+                            mentorSelect.appendChild(option);
+                        });
+
+                        data.researchers.forEach(researcher => {
+                            const option = document.createElement('option');
+                            option.value = researcher.email;
+                            option.textContent = `${researcher.name} (Researchers)`;
+                            mentorSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching mentors and members:', error));
+            }
+        }
+
+        function updateHiddenEmail() {
+            const mentorSelect = document.getElementById('mentor_name');
+            const hiddenEmailInput = document.getElementById('mentor_email');
+
+            // Set the hidden input value to the selected option's value (email)
+            hiddenEmailInput.value = mentorSelect.value;
+        }
+
+        function showAdminTicketDetails(ticketId, user_email) {
+            const modal = document.getElementById('ticketModal');
+            const ticketDetails = document.getElementById('ticketDetails');
+            const closeBtn = modal.querySelector('.close');
+
+            ticketDetails.innerHTML = '<p>Loading ticket details...</p>';
+            modal.style.display = 'block';
+
+            fetch(`/admin_ticket_updates_display_new/${ticketId}/${user_email}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    let content = `
+                        <div class="ticket-details">
+                            <h4>Ticket: ${data.ticket[1]}</h4>
+                            <p><strong>Description:</strong> ${data.ticket[3]}</p>
+                            <p><strong>Created:</strong> ${data.ticket[6]}</p>
+                            <p><strong>Status:</strong> ${data.ticket[7] ? 'Closed' : 'Open'}</p>
+                        </div>
+                        <div class="ticket-updates">
+                            <h5>Updates:</h5>
+                    `;
+
+                    if (data.daily_updates.length) {
+                        data.daily_updates.forEach(update => {
+                            content += `
+                                <div class="ticket-update">
+                                    <p><strong>${update[2]}:</strong> ${update[3]}</p>
+                                    <p><em>Stage: ${update[4]}, State: ${update[5]}</em></p>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        content += '<p>No updates for this ticket.</p>';
+                    }
+
+                    content += '</div>';
+                    ticketDetails.innerHTML = content;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    ticketDetails.innerHTML = '<p>Error loading ticket details. Please try again.</p>';
+                });
+
+            closeBtn.onclick = function () {
+                modal.style.display = 'none';
+            }
+
+            window.onclick = function (event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        }
+    </script>
+
+    <script>
+        document.querySelector('#create-tickets form').addEventListener('submit', function (e) {
+            const startDate = new Date(document.getElementById('start_date').value);
+            const endDate = new Date(document.getElementById('end_date').value);
+
+            // Reset any previous error messages
+            const existingError = document.querySelector('.date-error');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            // Validate dates
+            if (startDate > endDate) {
+                e.preventDefault();
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'date-error';
+                errorDiv.style.color = 'red';
+                errorDiv.style.marginBottom = '10px';
+                errorDiv.textContent = 'End date cannot be before start date';
+                document.getElementById('end_date').after(errorDiv);
+            }
+        });
+    </script>
+</body>
+
+</html>

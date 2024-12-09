@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3046c9;
+            --text: #2b2d42;
+            --text-light: #6c757d;
+            --background: #f8f9fa;
+            --white: #ffffff;
+            --success: #2ecc71;
+            --error: #ef233c;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #f1f4f9 100%);
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Logo styling */
+        .logo-left,
+        .logo-right {
+            position: absolute;
+            top: 20px;
+            width: 60px;
+            height: auto;
+        }
+
+        .logo-left {
+            left: 20px;
+        }
+
+        .logo-right {
+            right: 20px;
+            width: 100px;
+        }
+
+        /* Centering the h1 at the top */
+        h1 {
+            color: white;
+            font-size: 36px;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 40px;
+            position: absolute;
+            top: 20px; 
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background-color: var(--white);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            margin-top: 80px; 
+        }
+
+        h2 {
+            color: var(--text);
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        p {
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 24px;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: var(--primary-dark);
+        }
+
+        .flash-messages {
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        .flash-messages.success {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: var(--success);
+        }
+
+        .flash-messages.error {
+            background-color: rgba(239, 35, 60, 0.1);
+            color: var(--error);
+        }
+
+        .flash-messages ul {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .flash-messages li {
+            font-size: 14px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Logos -->
+    <img src="static/images/AI Research Logo.png" alt="Left Logo" class="logo-left">
+    <img src="static/images/Woxsen University.png" alt="Right Logo" class="logo-right">
+
+    <!-- Title centered at the top -->
+    <h1>Workflow360</h1>
+
+    <div class="container">
+        <h2>Login</h2>
+
+        <!-- Display Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            <ul>
+                {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="input-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+
+        <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign up here</a></p>
+        <p>To Login as Admin - <a href="{{ url_for('adminlogin') }}">Admin Login here</a></p>
+
+    </div>
+</body>
+
+</html>

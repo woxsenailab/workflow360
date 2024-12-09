@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Details</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 15px;
+        }
+
+        .project-info {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #3498db;
+            margin-top: 0;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin: 30px 0 20px;
+        }
+
+        .ticket-card {
+            background-color: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .ticket-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .active {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .closed {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        strong {
+            color: #34495e;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        h4 {
+            color: #3498db;
+            margin: 0 0 15px 0;
+            font-size: 1.2em;
+        }
+
+        .project-info p {
+            font-size: 1.1em;
+            border-bottom: 1px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .project-info p:last-child {
+            border-bottom: none;
+        }
+
+        .team-members-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        .team-members-list li {
+            background: #f5f5f5;
+            padding: 8px 15px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 60%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #2c3e50;
+        }
+
+        .update-item {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .ticket-info {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .project-info,
+            .ticket-card {
+                padding: 15px;
+            }
+
+            .modal-content {
+                width: 90%;
+                margin: 20px;
+            }
+        }
+        .flash-messages {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .flash-messages.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .flash-messages.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash-messages ul {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .flash-messages li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Project Details</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            <ul>
+                {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
+        
+        <div class="project-info">
+            <h2>{{ project[2] }}</h2>
+            <p><strong>Status:</strong>
+                <span class="status-badge {{ project[4].lower() }}">{{ project[4] }}</span>
+            </p>
+            <p><strong>Team Members:</strong></p>
+            <ul class="team-members-list">
+                {% set unique_members = {} %}
+                {% for name, email in zip(team_member_names, team_member_emails) %}
+                {% if email not in unique_members %}
+                {% set _ = unique_members.update({email: name}) %}
+                <li>{{ name }} ({{ email }})</li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+
+        <h3>Tickets</h3>
+        {% if tickets %}
+        {% for ticket in tickets %}
+        <div class="ticket-card">
+            <h4>{{ ticket[2] }}</h4>
+            <p><strong>Created by:</strong> {{ ticket[-1] }}</p>
+            <p><strong>Description:</strong> {{ ticket[3] }}</p>
+            <p><strong>Start Date:</strong> {{ ticket[4] }}</p>
+            <p><strong>Expected Date:</strong> {{ ticket[5] }}</p>
+            <p><strong>Status:</strong>
+                {% if ticket[8] %}
+                <span class="status-badge closed">Closed</span>
+                {% else %}
+                <span class="status-badge active">Active</span>
+                {% endif %}
+            </p>
+            <div class="ticket-actions">
+                <button class="button" onclick="openModal('{{ ticket[0] }}')">View Daily Updates</button>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p>No tickets found for this project.</p>
+        {% endif %}
+
+        <a href="{{ url_for('mentor') }}" class="button">Back to Mentor Dashboard</a>
+    </div>
+
+    <!-- Modal for Daily Updates -->
+    <div id="dailyUpdatesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Daily Updates</h2>
+            <div id="modalUpdatesContent"></div>
+        </div>
+    </div>
+
+    <script>
+        function openModal(ticketId) {
+            const updates = JSON.parse('{{ daily_updates|tojson|safe }}');
+            const modalContent = document.getElementById('modalUpdatesContent');
+            const modal = document.getElementById('dailyUpdatesModal');
+            modalContent.innerHTML = '';
+
+            if (updates[ticketId] && updates[ticketId].length > 0) {
+                updates[ticketId].forEach((update) => {
+                    modalContent.innerHTML += `
+                        <div class="update-item">
+                            <div class="ticket-info">
+                                <strong>Date:</strong>
+                                <span>${update[2]}</span>
+                            </div>
+                            <div class="ticket-info">
+                                <strong>Description:</strong>
+                                <span>${update[3]}</span>
+                            </div>
+                            <div class="ticket-info">
+                                <strong>Stage:</strong>
+                                <span>${update[4]}</span>
+                            </div>
+                            <div class="ticket-info">
+                                <strong>State:</strong>
+                                <span>${update[5]}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                modalContent.innerHTML = '<p>No updates available for this ticket.</p>';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('dailyUpdatesModal').classList.remove('show');
+        }
+
+        window.onclick = function (event) {
+            const modal = document.getElementById('dailyUpdatesModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+
+</html>

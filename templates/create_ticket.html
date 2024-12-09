@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Ticket</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin: 40px 0;
+            font-size: 2.2rem;
+            font-weight: 600;
+        }
+
+        .form-container {
+            max-width: 800px;
+            width: 90%;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-container label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .form-container input,
+        .form-container textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 24px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-container input:focus,
+        .form-container textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .form-container textarea {
+            min-height: 120px;
+        }
+
+        .form-container button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .form-container button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        select,
+        input,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .back-link a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: #45a049;
+        }
+
+        .flashes {
+            max-width: 800px;
+            margin: 20px auto;
+        }
+
+        .flashes li {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .flashes li.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .flashes li.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .form-container {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Create New Ticket</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flashes">
+        {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    <div class="form-container">
+        <form action="{{ url_for('create_ticket') }}" method="POST">
+            <label for="project_info">Project Name:</label>
+            <input type="text" id="project_info" value="{{ project_name }}" readonly style="border: none; background-color: #f8f9fa; color: #495057;"/><br>
+            
+            <!-- Hidden input to submit the project name -->
+            <input type="hidden" name="project_info" value="{{ project_name }}">
+
+            <label for="description">Project Description:</label>
+            <textarea name="description" required></textarea><br>
+
+            <label for="assigned_to">Assign To:</label>
+            <input type="text" id="assigned_to" value="{{ member }}" readonly style="border: none; background-color: #f8f9fa; color: #495057;"/><br>
+            
+            <!-- Hidden input to submit the member -->
+            <input type="hidden" name="assigned_to" value="{{ member }}">
+            <input type="hidden" name="memEmail" value="{{ member_email }}">
+
+            <label for="module_info">Project Module:</label>
+            <input type="text" name="module_info" id="module_info" enabled><br>
+
+            <label for="start_date">Start Date:</label>
+            <input type="date" name="start_date" required><br>
+
+            <label for="expected_date">Expected Date:</label>
+            <input type="date" name="expected_date" required><br>
+
+            <button type="submit">Create Ticket</button>
+        </form>
+    </div>
+
+    <div class="back-link">
+        <a href="{{ url_for('mentor') }}">Back to Home</a>
+    </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function (e) {
+            const startDate = document.querySelector('input[name="start_date"]').value;
+            const expectedDate = document.querySelector('input[name="expected_date"]').value;
+
+            if (new Date(expectedDate) < new Date(startDate)) {
+                alert("Expected Date must be after the Start Date.");
+                e.preventDefault();
+            }
+        });
+    </script>
+
+</body>
+
+</html>
