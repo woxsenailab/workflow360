@@ -145,6 +145,18 @@
 
         <p><a href="{{ url_for('login') }}">Back to User Login</a></p>
     </div>
+
+    <script>
+        // Function to hide the flash messages after 4 seconds
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const flashMessages = document.querySelectorAll('.flash-messages');
+            flashMessages.forEach((message) => {
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 4000); // 4000 milliseconds = 4 seconds
+            });
+        });
+    </script>
 </body>
 
 </html>

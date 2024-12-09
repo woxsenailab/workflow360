@@ -202,6 +202,7 @@
                 margin: 20px;
             }
         }
+
         .flash-messages {
             background-color: #f8d7da;
             color: #721c24;
@@ -247,7 +248,7 @@
         </div>
         {% endif %}
         {% endwith %}
-        
+
         <div class="project-info">
             <h2>{{ project[2] }}</h2>
             <p><strong>Status:</strong>
@@ -349,6 +350,18 @@
                 closeModal();
             }
         };
+    </script>
+
+    <script>
+        // Function to hide the flash messages after 4 seconds
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const flashMessages = document.querySelectorAll('.flash-messages');
+            flashMessages.forEach((message) => {
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 4000); // 4000 milliseconds = 4 seconds
+            });
+        });
     </script>
 </body>
 

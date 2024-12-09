@@ -247,7 +247,7 @@ def mentor():
     if 'email' not in session:
         flash("You must be logged in to view the mentor page.", "error")
         return redirect(url_for('login'))
-
+    close_expired_tickets()
     mentor_email = session['email']
     
     conn = sqlite3.connect('database.db')
@@ -1075,7 +1075,7 @@ def home():
     if 'email' not in session:
         flash("You must be logged in to view the home page.", "error")
         return redirect(url_for('login'))
-
+    close_expired_tickets()
     user_email = session['email']
     user_email_table = f'tickets_{user_email.replace("@", "_").replace(".", "_")}'
     user_updates_table = f'daily_updates_{user_email.replace("@", "_").replace(".", "_")}'
@@ -1163,7 +1163,8 @@ def researchers():
     if 'email' not in session:
         flash("You must be logged in to view the home page.", "error")
         return redirect(url_for('login'))
-
+    
+    close_expired_tickets()
     user_email = session['email']
     user_email_table = f'tickets_{user_email.replace("@", "_").replace(".", "_")}'
     user_updates_table = f'daily_updates_{user_email.replace("@", "_").replace(".", "_")}'
@@ -1675,6 +1676,56 @@ def get_mentors_and_members(team_name):
         'members': [{'name': member[0], 'email': member[1]} for member in members],
         'researchers': [{'name': researcher[0], 'email': researcher[1]} for researcher in researchers]
     })
+
+def close_expired_tickets():
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+
+    # Get the current date and time
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Close tickets in user-specific tables
+    c.execute("""
+        SELECT DISTINCT team_member_email FROM projects WHERE status = 'active'
+    """)
+    team_members = c.fetchall()
+
+    for member in team_members:
+        member_email = member[0]  # Get the email from the tuple
+        if member_email is None:
+            print("Skipping None member_email")
+            continue  # Skip if member_email is None
+
+        user_email_table = f'tickets_{member_email.replace("@", "_").replace(".", "_")}'
+        
+        # Close tickets where expected_date is less than or equal to current_time
+        c.execute(f"""
+            UPDATE {user_email_table}
+            SET closed_date = datetime('now'),
+                duration_days = CAST((julianday(datetime('now')) - julianday(start_date)) AS INTEGER)
+            WHERE expected_date <= ?
+            AND closed_date IS NULL
+        """, (current_time,))
+
+    # Close tickets in admin-specific tables
+    c.execute("SELECT email FROM signup WHERE role IN ('mentor', 'team_member', 'researchers')")
+    users = c.fetchall()
+
+    for user in users:
+        user_email = user[0]
+        admin_email_table = f'admin_tickets_{user_email.replace("@", "_").replace(".", "_")}'
+        
+        # Close admin tickets where expected_date is less than or equal to current_time
+        c.execute(f"""
+            UPDATE {admin_email_table}
+            SET closed_date = datetime('now'),
+                duration_days = CAST((julianday(datetime('now')) - julianday(start_date)) AS INTEGER)
+            WHERE expected_date <= ?
+            AND closed_date IS NULL
+        """, (current_time,))
+
+    conn.commit()
+    conn.close()
 
 # Main route (home)
 @app.route('/')

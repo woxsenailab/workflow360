@@ -5,7 +5,7 @@ import os
 import sys
 import typing as t
 from datetime import datetime
-from functools import lru_cache
+from functools import cache
 from functools import update_wrapper
 
 import werkzeug.utils
@@ -47,9 +47,21 @@ def get_load_dotenv(default: bool = True) -> bool:
     return val.lower() in ("0", "false", "no")
 
 
+@t.overload
+def stream_with_context(
+    generator_or_function: t.Iterator[t.AnyStr],
+) -> t.Iterator[t.AnyStr]: ...
+
+
+@t.overload
+def stream_with_context(
+    generator_or_function: t.Callable[..., t.Iterator[t.AnyStr]],
+) -> t.Callable[[t.Iterator[t.AnyStr]], t.Iterator[t.AnyStr]]: ...
+
+
 def stream_with_context(
     generator_or_function: t.Iterator[t.AnyStr] | t.Callable[..., t.Iterator[t.AnyStr]],
-) -> t.Iterator[t.AnyStr]:
+) -> t.Iterator[t.AnyStr] | t.Callable[[t.Iterator[t.AnyStr]], t.Iterator[t.AnyStr]]:
     """Request contexts disappear when the response is started on the server.
     This is done for efficiency reasons and to make it less likely to encounter
     memory leaks with badly written WSGI middlewares.  The downside is that if
@@ -535,7 +547,8 @@ def send_from_directory(
     raises a 404 :exc:`~werkzeug.exceptions.NotFound` error.
 
     :param directory: The directory that ``path`` must be located under,
-        relative to the current application's root path.
+        relative to the current application's root path. This *must not*
+        be a value provided by the client, otherwise it becomes insecure.
     :param path: The path to the file to send, relative to
         ``directory``.
     :param kwargs: Arguments to pass to :func:`send_file`.
@@ -587,7 +600,7 @@ def get_root_path(import_name: str) -> str:
         return os.getcwd()
 
     if hasattr(loader, "get_filename"):
-        filepath = loader.get_filename(import_name)
+        filepath = loader.get_filename(import_name)  # pyright: ignore
     else:
         # Fall back to imports.
         __import__(import_name)
@@ -611,7 +624,7 @@ def get_root_path(import_name: str) -> str:
     return os.path.dirname(os.path.abspath(filepath))  # type: ignore[no-any-return]
 
 
-@lru_cache(maxsize=None)
+@cache
 def _split_blueprint_path(name: str) -> list[str]:
     out: list[str] = [name]
 

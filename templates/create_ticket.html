@@ -159,8 +159,9 @@
     <div class="form-container">
         <form action="{{ url_for('create_ticket') }}" method="POST">
             <label for="project_info">Project Name:</label>
-            <input type="text" id="project_info" value="{{ project_name }}" readonly style="border: none; background-color: #f8f9fa; color: #495057;"/><br>
-            
+            <input type="text" id="project_info" value="{{ project_name }}" readonly
+                style="border: none; background-color: #f8f9fa; color: #495057;" /><br>
+
             <!-- Hidden input to submit the project name -->
             <input type="hidden" name="project_info" value="{{ project_name }}">
 
@@ -168,8 +169,9 @@
             <textarea name="description" required></textarea><br>
 
             <label for="assigned_to">Assign To:</label>
-            <input type="text" id="assigned_to" value="{{ member }}" readonly style="border: none; background-color: #f8f9fa; color: #495057;"/><br>
-            
+            <input type="text" id="assigned_to" value="{{ member }}" readonly
+                style="border: none; background-color: #f8f9fa; color: #495057;" /><br>
+
             <!-- Hidden input to submit the member -->
             <input type="hidden" name="assigned_to" value="{{ member }}">
             <input type="hidden" name="memEmail" value="{{ member_email }}">
@@ -203,6 +205,17 @@
         });
     </script>
 
+    <script>
+        // Function to hide the flash messages after 4 seconds
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const flashMessages = document.querySelectorAll('.flash-messages');
+            flashMessages.forEach((message) => {
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 4000); // 4000 milliseconds = 4 seconds
+            });
+        });
+    </script>
 </body>
 
 </html>
