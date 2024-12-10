@@ -95,7 +95,8 @@ def signup():
                 duration_days INTEGER,
                 member TEXT,
                 team_member_email TEXT,
-                status TEXT DEFAULT 'active'
+                status TEXT DEFAULT 'active',
+                ticket_images BLOB
             );
         """)
 
@@ -107,6 +108,7 @@ def signup():
                 daily_description TEXT,
                 stage TEXT,
                 state TEXT,
+                update_images BLOB,
                 FOREIGN KEY (ticket_id) REFERENCES tickets_{email.replace('@', '_').replace('.', '_')} (id),
                 UNIQUE(ticket_id, update_date)
             );
@@ -1595,7 +1597,8 @@ def create_ticket_admin():
                 duration_days INTEGER,
                 member TEXT,
                 team_member_email TEXT,
-                status TEXT DEFAULT 'active'
+                status TEXT DEFAULT 'active',
+                ad_ticket_images BLOB
             );
         """)
 
@@ -1607,6 +1610,7 @@ def create_ticket_admin():
                 daily_description TEXT,
                 stage TEXT,
                 state TEXT,
+                updates_images_Ad BLOB,
                 FOREIGN KEY (ticket_id) REFERENCES tickets_{mentor_email.replace('@', '_').replace('.', '_')} (id),
                 UNIQUE(ticket_id, update_date)
             );
