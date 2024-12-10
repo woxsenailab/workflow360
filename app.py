@@ -94,7 +94,8 @@ def signup():
                 closed_date TIMESTAMP,
                 duration_days INTEGER,
                 member TEXT,
-                team_member_email TEXT
+                team_member_email TEXT,
+                status TEXT DEFAULT 'active'
             );
         """)
 
@@ -125,6 +126,8 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+
+        close_expired_tickets()
 
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
@@ -178,7 +181,7 @@ def login():
         else:
             flash("Invalid credentials. Please try again.", "error")
             return redirect(url_for('login'))
-
+    
     return render_template('login.html')  # Ensure you have a login.html template
 
 @app.route('/logout')
@@ -247,9 +250,11 @@ def mentor():
     if 'email' not in session:
         flash("You must be logged in to view the mentor page.", "error")
         return redirect(url_for('login'))
-    close_expired_tickets()
+    # close_expired_tickets()
     mentor_email = session['email']
     
+    close_expired_tickets()
+
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
 
@@ -668,12 +673,12 @@ def close_ticket(ticket_id):
     
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    ticket_closed_time = datetime.now()
+    ticket_closed_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     try:
         # Update the ticket with closed date and duration
         c.execute(f"""
             UPDATE {user_email_table}
-            SET closed_date = ?,
+            SET closed_date = ?, status = 'closed',
                 duration_days = CAST((julianday(?) - julianday(start_date)) AS INTEGER)
             WHERE id = ?
         """, (ticket_closed_time, ticket_closed_time, ticket_id))
@@ -694,7 +699,7 @@ def admin_close_ticket(ticket_id):
         return redirect(url_for('login'))
 
     user_email_table = f'admin_tickets_{session["email"].replace("@", "_").replace(".", "_")}'
-    
+    ticket_closed_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
 
@@ -702,10 +707,10 @@ def admin_close_ticket(ticket_id):
         # Update the ticket with closed date and duration
         c.execute(f"""
             UPDATE {user_email_table}
-            SET closed_date = datetime('now'),
-                duration_days = CAST((julianday(datetime('now')) - julianday(start_date)) AS INTEGER)
+            SET closed_date = ?, status = 'closed',
+                duration_days = CAST((julianday(?) - julianday(start_date)) AS INTEGER)
             WHERE id = ?
-        """, (ticket_id,))
+        """, (ticket_closed_time, ticket_closed_time, ticket_id,))
 
         conn.commit()
         flash("Ticket closed successfully!", "success")
@@ -732,6 +737,7 @@ ADMIN_PASSWORD = 'Drhema@1234'
 # Admin login route
 @app.route('/adminlogin', methods=['GET'])
 def admin_login_page():
+    close_expired_tickets()
     return render_template('adminLogin.html')
 
 # Admin login route
@@ -754,7 +760,7 @@ def admin():
     if 'admin' not in session:
         flash("You must be logged in as an admin to view this page.", "error")
         return redirect(url_for('admin_login_page'))
-
+    close_expired_tickets()
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
 
@@ -843,12 +849,13 @@ def admin():
         except sqlite3.OperationalError:
             print(f"Table {admin_email_table} does not exist. Skipping admin tickets.")
 
+        team_name = user[4]
         # Group users by team for attendance
         team_name = user[4]  # Assuming team_name is the fifth column
         if team_name not in teams:
             teams[team_name] = {'mentor': [], 'members': []}
         
-        if user[ 5] == 'mentor':
+        if user[5] == 'mentor':
             teams[team_name]['mentor'].append(user)
         else:
             teams[team_name]['members'].append(user)
@@ -1075,11 +1082,13 @@ def home():
     if 'email' not in session:
         flash("You must be logged in to view the home page.", "error")
         return redirect(url_for('login'))
-    close_expired_tickets()
+    # close_expired_tickets()
     user_email = session['email']
     user_email_table = f'tickets_{user_email.replace("@", "_").replace(".", "_")}'
     user_updates_table = f'daily_updates_{user_email.replace("@", "_").replace(".", "_")}'
     admin_email_table = f'admin_tickets_{user_email.replace("@", "_").replace(".", "_")}'
+
+    close_expired_tickets()
 
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
@@ -1165,6 +1174,7 @@ def researchers():
         return redirect(url_for('login'))
     
     close_expired_tickets()
+
     user_email = session['email']
     user_email_table = f'tickets_{user_email.replace("@", "_").replace(".", "_")}'
     user_updates_table = f'daily_updates_{user_email.replace("@", "_").replace(".", "_")}'
@@ -1333,7 +1343,8 @@ def get_tickets(member_email, project_info):
             'started': ticket[4],
             'expected': ticket[5],
             'created': ticket[6],
-            'closed': ticket[8]  
+            'status': ticket[11],
+            'closed' : ticket[7]
         })
 
     conn.close()
@@ -1568,6 +1579,7 @@ def create_ticket_admin():
         mentor_name = request.form['mentor_name']
         mentor_email = request.form['mentor_email']
         project_name = request.form['project_name']
+        module_info = request.form['module_info']
         description = request.form['description']
         start_date = request.form['start_date']
         end_date = request.form['end_date']
@@ -1597,7 +1609,8 @@ def create_ticket_admin():
                 closed_date TIMESTAMP,
                 duration_days INTEGER,
                 member TEXT,
-                team_member_email TEXT
+                team_member_email TEXT,
+                status TEXT DEFAULT 'active'
             );
         """)
 
@@ -1633,9 +1646,9 @@ def create_ticket_admin():
         ticket_creation_time_str = ticket_creation_time.strftime('%Y-%m-%d %H:%M')
 
         c.execute(f"""
-            INSERT INTO {member_email_table} (project_info, description, start_date, expected_date, ticket_creation_time, team_member_email)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (project_name, description, start_datetime, end_datetime, ticket_creation_time_str, mentor_email))
+            INSERT INTO {member_email_table} (project_info, description,module_info, start_date, expected_date, ticket_creation_time, team_member_email)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (project_name, description, module_info, start_datetime, end_datetime, ticket_creation_time_str, mentor_email))
 
         conn.commit()
         conn.close()
@@ -1689,7 +1702,7 @@ def close_expired_tickets():
         SELECT DISTINCT team_member_email FROM projects WHERE status = 'active'
     """)
     team_members = c.fetchall()
-
+    
     for member in team_members:
         member_email = member[0]  # Get the email from the tuple
         if member_email is None:
@@ -1697,15 +1710,28 @@ def close_expired_tickets():
             continue  # Skip if member_email is None
 
         user_email_table = f'tickets_{member_email.replace("@", "_").replace(".", "_")}'
-        
-        # Close tickets where expected_date is less than or equal to current_time
         c.execute(f"""
-            UPDATE {user_email_table}
-            SET closed_date = datetime('now'),
-                duration_days = CAST((julianday(datetime('now')) - julianday(start_date)) AS INTEGER)
-            WHERE expected_date <= ?
-            AND closed_date IS NULL
-        """, (current_time,))
+            SELECT * FROM {user_email_table} WHERE closed_date IS NULL
+        """)
+        tickets_detail = c.fetchall()
+
+        # Check if there are any tickets to process
+        if not tickets_detail:
+            print(f"No open tickets found for {member_email}.")
+            continue  # Skip to the next member if no tickets are found
+
+        for ticket in tickets_detail:
+            ticket_id = ticket[0]  # Assuming the first column is the ticket ID
+            expected_date = ticket[5]  # Assuming the expected_date is in the 6th column (index 5)
+
+            # Close tickets where expected_date is less than or equal to current_time
+            if expected_date <= current_time:
+                c.execute(f"""
+                    UPDATE {user_email_table}
+                    SET closed_date = ?, status = 'closed',
+                        duration_days = CAST((julianday(?) - julianday(start_date)) AS INTEGER)
+                    WHERE id = ?
+                """, (expected_date, expected_date, ticket_id))
 
     # Close tickets in admin-specific tables
     c.execute("SELECT email FROM signup WHERE role IN ('mentor', 'team_member', 'researchers')")
@@ -1714,16 +1740,32 @@ def close_expired_tickets():
     for user in users:
         user_email = user[0]
         admin_email_table = f'admin_tickets_{user_email.replace("@", "_").replace(".", "_")}'
-        
-        # Close admin tickets where expected_date is less than or equal to current_time
         c.execute(f"""
-            UPDATE {admin_email_table}
-            SET closed_date = datetime('now'),
-                duration_days = CAST((julianday(datetime('now')) - julianday(start_date)) AS INTEGER)
-            WHERE expected_date <= ?
-            AND closed_date IS NULL
-        """, (current_time,))
+            SELECT * FROM {admin_email_table} WHERE closed_date IS NULL
+        """)
+        admin_tickets_detail = c.fetchall()
 
+        # Check if there are any admin tickets to process
+        if not admin_tickets_detail:
+            print(f"No open admin tickets found for {user_email}.")
+            continue  # Skip to the next user if no tickets are found
+
+        for admin_ticket in admin_tickets_detail:
+            admin_ticket_id = admin_ticket[0]  # Assuming the first column is the ticket ID
+            admin_expected_date = admin_ticket[5]  # Assuming the expected_date is in the 6th column (index 5)
+
+            # Close admin tickets where expected_date is less than or equal to current_time
+            if admin_expected_date <= current_time:
+                try:
+                    c.execute(f"""
+                        UPDATE {admin_email_table}
+                        SET closed_date = ?, status = 'closed',
+                            duration_days = CAST((julianday(?) - julianday(start_date)) AS INTEGER)
+                        WHERE id = ?
+                    """, (admin_expected_date, admin_expected_date, admin_ticket_id))
+                except sqlite3.OperationalError:
+                    print(f"Error updating admin ticket {admin_ticket_id} for {user_email}.")
+        
     conn.commit()
     conn.close()
 

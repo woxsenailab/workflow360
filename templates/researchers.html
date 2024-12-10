@@ -229,18 +229,18 @@
                             <p>{{ ticket[3] }}</p>
                         </div>
                         <div class="ticket-info">
-                            <strong>Start Date:</strong>
-                            <p>{{ ticket[4] }}</p>
+                            <strong>Created On:</strong>
+                            <p>{{ ticket[6] }}</p>
                         </div>
                     </div>
                     <div class="ticket-info-column">
                         <div class="ticket-info">
-                            <strong>Expected Date:</strong>
-                            <p>{{ ticket[5] }}</p>
+                            <strong>Start Date:</strong>
+                            <p>{{ ticket[4] }}</p>
                         </div>
                         <div class="ticket-info">
-                            <strong>Created On:</strong>
-                            <p>{{ ticket[6] }}</p>
+                            <strong>Expected Date:</strong>
+                            <p>{{ ticket[5] }}</p>
                         </div>
                     </div>
                 </div>
@@ -269,11 +269,14 @@
                     {% for ticket in tickets %}
                     <div class="ticket-info">
                         <strong>Admin Created Ticket #{{ ticket[0] }}</strong>
-                        <p>{{ ticket[3] }}</p>
-                        <div class="ticket-details">
-                            <p><strong>Closed On:</strong> {{ ticket[7] }}</p>
-                            <p><strong>Duration:</strong> {{ ticket[9] }} days</p>
-                        </div>
+                        <p><strong>Description:</strong> {{ ticket[3] }}</p>
+                                <div class="ticket-details">
+                                    <p><strong>Module:</strong> {{ ticket[2] }}</p>
+                                    <p><strong>Ticket Created On:</strong> {{ ticket[6] }}</p>
+                                    <p><strong>Ticket Started:</strong> {{ ticket[4] }}</p>
+                                    <p><strong>Ticket Expected To End:</strong> {{ ticket[5] }}</p>
+                                    <p><strong>Ticket Closed:</strong> {{ ticket[7] }}</p>
+                                </div>
                         <a href="{{ url_for('admin_ticket_updates', ticket_id=ticket[0], source='researchers') }}"
                             class="btn btn-update">View Updates</a>
                     </div>

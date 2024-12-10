@@ -404,8 +404,13 @@
             {% for team_name, team in teams.items() %}
             <div class="user-section">
                 <h4>Team: {{ team_name }}</h4>
-                <p>Mentor: {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
-                <p>Members: {% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
+                {% if team_name == 'Others' %}
+                <p><h5>Researcher:</h5> {% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
+                {% else %}
+                <p><h5>Mentor:</h5> {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
+                <h5>Members:</h5>
+                <p>{% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -417,6 +422,7 @@
                 oninput="searchUser()">
 
             {% for team_name, team in teams.items() %}
+            {% if team_name != 'Others' %}
             <div class="user-section">
                 <h4>Team: {{ team_name }}</h4>
                 <p>Mentor: {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
@@ -452,6 +458,7 @@
                     {% endfor %}
                 </ul>
             </div>
+            {% endif %}
             {% endfor %}
         </div>
 
@@ -817,10 +824,13 @@
                 .then(data => {
                     let content = `
                         <div class="ticket-details">
-                            <h4>Ticket: ${data.ticket[1]}</h4>
+                            <h4>Ticket: ${data.ticket[0]}</h4>
                             <p><strong>Description:</strong> ${data.ticket[3]}</p>
                             <p><strong>Created:</strong> ${data.ticket[6]}</p>
-                            <p><strong>Status:</strong> ${data.ticket[7] ? 'Closed' : 'Open'}</p>
+                            <p><strong>Started On:</strong> ${data.ticket[4]}</p>
+                            <p><strong>Expected To End:</strong> ${data.ticket[5]}</p>
+                            <p><strong>Status:</strong> ${data.ticket[11]}</p>
+                            <p><strong>Closed On:</strong> ${data.ticket[7] ? data.ticket[7] : 'Not Closed Yet'}</p>
                         </div>
                         <div class="ticket-updates">
                             <h5>Updates:</h5>

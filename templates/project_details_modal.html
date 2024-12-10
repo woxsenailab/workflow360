@@ -33,10 +33,11 @@
             <h5>Ticket #{{ ticket[0] }}</h5>
             <p><strong>Module:</strong> {{ ticket[2] }}</p>
             <p><strong>Description:</strong> {{ ticket[3] }}</p>
+            <p><strong>Created On:</strong> {{ ticket[6] }}</p> 
             <p><strong>Start Date:</strong> {{ ticket[4] }}</p>
             <p><strong>Expected Date:</strong> {{ ticket[5] }}</p>
-            <p><strong>Created On:</strong> {{ ticket[6] }}</p> <!-- Ticket Creation Date -->
-            <p><strong>Status:</strong> {{ 'Closed' if ticket[8] else 'Open' }}</p>
+            <p><strong>Status:</strong> {{ ticket[11] }}</p>
+            <p><strong>Ticket Closed On:</strong> {{ ticket[7] if ticket[7] else 'Not Yet Closed' }}</p>
 
             {% if ticket[0] in ticket_updates %}
             <div class="updates">

@@ -476,24 +476,23 @@
                             <p>{{ ticket[3] }}</p>
                         </div>
                         <div class="ticket-info">
-                            <strong>Start Date:</strong>
-                            <p>{{ ticket[4] }}</p>
-                        </div>
-                    </div>
-                    <div class="ticket-info-column">
-                        <div class="ticket-info">
-                            <strong>Expected Date:</strong>
-                            <p>{{ ticket[5] }}</p>
-                        </div>
-                        <div class="ticket-info">
                             <strong>Created On:</strong>
                             <p>{{ ticket[6] }}</p>
                         </div>
                     </div>
+                    <div class="ticket-info-column">
+                        <div class="ticket-info">
+                            <strong>Start Date:</strong>
+                            <p>{{ ticket[4] }}</p>
+                        </div>
+                        <div class="ticket-info">
+                            <strong>Expected Date:</strong>
+                            <p>{{ ticket[5] }}</p>
+                        </div>
+                    </div>
                 </div>
                 <div class="ticket-actions">
-                    <a href="{{ url_for('admin_ticket_details', ticket_id=ticket[0], source='mentor') }}"
-                        class="btn btn-update">Add Daily Update</a>
+                    <a href="{{ url_for('admin_ticket_details', ticket_id=ticket[0], source='mentor') }}" class="btn btn-update">Add Daily Update</a>
                     <form action="{{ url_for('admin_close_ticket', ticket_id=ticket[0], source='mentor') }}"
                         method="POST" style="display:inline;">
                         <button type="submit" class="btn btn-close">Close Ticket</button>
@@ -516,11 +515,14 @@
                     {% for ticket in tickets %}
                     <div class="ticket-info">
                         <strong>Admin Created Ticket #{{ ticket[0] }}</strong>
-                        <p>{{ ticket[3] }}</p>
-                        <div class="ticket-details">
-                            <p><strong>Closed On:</strong> {{ ticket[7] }}</p>
-                            <p><strong>Duration:</strong> {{ ticket[9] }} days</p>
-                        </div><br>
+                        <p><strong>Description:</strong> {{ ticket[3] }}</p>
+                                <div class="ticket-details">
+                                    <p><strong>Module:</strong> {{ ticket[2] }}</p>
+                                    <p><strong>Ticket Created On:</strong> {{ ticket[6] }}</p>
+                                    <p><strong>Ticket Started:</strong> {{ ticket[4] }}</p>
+                                    <p><strong>Ticket Expected To End:</strong> {{ ticket[5] }}</p>
+                                    <p><strong>Ticket Closed:</strong> {{ ticket[7] }}</p>
+                                </div><br>
                         <a href="{{ url_for('admin_ticket_updates', ticket_id=ticket[0], source='mentor') }}"
                             class="btn btn-update">View Updates</a>
                     </div>
@@ -713,10 +715,11 @@
                     <h2><strong>Ticket ID:</strong> ${ticket.id}</h2>
                     <p><strong>Module:</strong> ${ticket.Module}</p>
                     <p><strong>Description:</strong> ${ticket.description}</p>
+                    <p><strong>Ticket Created:</strong> ${ticket.created}</p>
                     <p><strong>Start Date:</strong> ${ticket.started}</p>
                     <p><strong>Expected End Date:</strong> ${ticket.expected}</p>
-                    <p><strong>Ticket Created:</strong> ${ticket.created}</p>
-                    <p><strong>Closed:</strong> ${ticket.closed ? ticket.closed : 'Open'}</p>
+                    <p><strong>Status:</strong> ${ticket.status}</p>
+                    <p><strong>Closed Date:</strong> ${ticket.closed ? ticket.closed : 'Not Closed Yet'}</p>
                 </div>
             `).join('');
                     document.getElementById('ticketModal').style.display = 'block';
