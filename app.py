@@ -127,8 +127,6 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
-        close_expired_tickets()
-
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
         c.execute("SELECT * FROM signup WHERE email = ? AND password = ?", (email, password))
@@ -250,11 +248,10 @@ def mentor():
     if 'email' not in session:
         flash("You must be logged in to view the mentor page.", "error")
         return redirect(url_for('login'))
-    # close_expired_tickets()
+
+    close_expired_tickets()
     mentor_email = session['email']
     
-    close_expired_tickets()
-
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
 
@@ -267,35 +264,26 @@ def mentor():
     if selected_team:
         session['selected_team'] = selected_team
 
-    # Fetch active projects
-    c.execute("""
-        SELECT DISTINCT p.id, p.mentor_email, p.team_member_email, p.project_info, p.description, p.status, p.team_name 
-        FROM projects p
-        LEFT JOIN signup s ON s.email = p.team_member_email
-        WHERE p.mentor_email = ? 
-        AND p.team_name = ?
-        AND p.status = 'active'
-        GROUP BY p.project_info
-        ORDER BY p.id DESC
-    """, (mentor_email, selected_team))
-    active_projects = c.fetchall()
+    # Fetch active and closed projects
+    def fetch_projects(status):
+        c.execute("""
+            SELECT DISTINCT p.id, p.mentor_email, p.team_member_email, p.project_info, p.description, p.status, p.team_name
+            FROM projects p
+            LEFT JOIN signup s ON s.email = p.team_member_email
+            WHERE p.mentor_email = ? 
+            AND p.team_name = ? 
+            AND p.status = ?
+            GROUP BY p.project_info
+            ORDER BY p.id DESC
+        """, (mentor_email, selected_team, status))
+        return c.fetchall()
 
-    # Fetch closed projects
-    c.execute("""
-        SELECT DISTINCT p.id, p.mentor_email, p.team_member_email, p.project_info, p.description, p.status, p.team_name 
-        FROM projects p
-        LEFT JOIN signup s ON s.email = p.team_member_email
-        WHERE p.mentor_email = ? 
-        AND p.team_name = ?
-        AND p.status = 'closed'
-        GROUP BY p.project_info
-        ORDER BY p.id DESC
-    """, (mentor_email, selected_team))
-    closed_projects = c.fetchall()
+    active_projects = fetch_projects('active')
+    closed_projects = fetch_projects('closed')
 
     # Fetch all projects (active and closed) for the selected team
     c.execute("""
-        SELECT DISTINCT p.id, p.mentor_email, p.team_member_email, p.project_info, p.description, p.status, p.team_name 
+        SELECT DISTINCT p.id, p.mentor_email, p.team_member_email, p.project_info, p.description, p.status, p.team_name
         FROM projects p
         WHERE p.mentor_email = ? 
         AND p.team_name = ?
@@ -304,31 +292,31 @@ def mentor():
     """, (mentor_email, selected_team))
     projects_all = c.fetchall()
 
-    # Fetch team members from the selected team
+    # Initialize team members, projects, tickets, etc.
     team_members = []
     projects = {}
-    tickets = {} 
+    tickets = {}
     projects_dict = {}
-    
+    current_admin_tickets = []
+    closed_admin_tickets = {}
+
     if selected_team:
         c.execute("SELECT * FROM signup WHERE team_name = ? AND email != ? AND role = 'team_member'", 
                  (selected_team, mentor_email))
         team_members = c.fetchall()
 
         # Fetch active projects for team members
-    for member in team_members:
-        member_email = member[2]  # Assuming email is the third column
-        c.execute("""
-            SELECT * FROM projects 
-            WHERE team_member_email = ? 
-            AND status = 'active'
-        """, (member_email,))
-        member_projects = c.fetchall()
-        projects[member_email] = member_projects
-    
-    # Fetch projects for team members
         for member in team_members:
             member_email = member[2]  # Assuming email is the third column
+            c.execute("""
+                SELECT * FROM projects 
+                WHERE team_member_email = ? 
+                AND status = 'active'
+            """, (member_email,))
+            member_projects = c.fetchall()
+            projects[member_email] = member_projects
+
+            # Fetch all projects for the team member (active and closed)
             c.execute("""
                 SELECT * FROM projects 
                 WHERE team_member_email = ?
@@ -336,52 +324,49 @@ def mentor():
             member_projects = c.fetchall()
             projects_dict[member_email] = member_projects
 
-        # Fetch tickets for this member
-        user_email_table = f'tickets_{member_email.replace("@", "_").replace(".", "_")}'  # Correctly construct the table name
-        try:
-            c.execute(f"SELECT * FROM {user_email_table} WHERE closed_date IS NULL")  # Fetch only active tickets
-            member_tickets = c.fetchall()
-            tickets[member_email] = member_tickets  # Store tickets for this member
-        except sqlite3.OperationalError:
-            # Handle the case where the table does not exist
-            tickets[member_email] = []
+            # Fetch tickets for this member
+            user_email_table = f'tickets_{member_email.replace("@", "_").replace(".", "_")}'  # Correctly construct the table name
+            try:
+                c.execute(f"SELECT * FROM {user_email_table} WHERE closed_date IS NULL")  # Fetch only active tickets
+                member_tickets = c.fetchall()
+                tickets[member_email] = member_tickets  # Store tickets for this member
+            except sqlite3.OperationalError:
+                # Handle the case where the table does not exist
+                tickets[member_email] = []
 
-        # Fetch current and closed admin tickets
-        admin_email_table = f'admin_tickets_{mentor_email.replace("@", "_").replace(".", "_")}'
-        current_admin_tickets = []
-        closed_admin_tickets = {}
+            # Fetch current and closed admin tickets
+            admin_email_table = f'admin_tickets_{member_email.replace("@", "_").replace(".", "_")}'
+            try:
+                c.execute(f"SELECT * FROM {admin_email_table}")
+                admin_tickets = c.fetchall()
 
-        try:
-            # Try to execute the query to fetch admin tickets
-            c.execute(f"SELECT * FROM {admin_email_table}")
-            admin_tickets = c.fetchall()
+                # Process the admin tickets
+                for ticket in admin_tickets:
+                    closed_date = ticket[7]  # Assuming closed_date is the 8th column
+                    if closed_date is None:
+                        current_admin_tickets.append(ticket)
+                    else:
+                        project_info = ticket[1]
+                        if project_info not in closed_admin_tickets:
+                            closed_admin_tickets[project_info] = []
+                        closed_admin_tickets[project_info].append(ticket)
+            except sqlite3.OperationalError:
+                # Handle the case where the table doesn't exist
+                print(f"Table {admin_email_table} does not exist. Skipping admin tickets.")
 
-            # Process the admin tickets
-            for ticket in admin_tickets:
-                closed_date = ticket[7]  # Assuming closed_date is the 8th column
-                if closed_date is None:
-                    current_admin_tickets.append(ticket)
-                else:
-                    project_info = ticket[1]
-                    if project_info not in closed_admin_tickets:
-                        closed_admin_tickets[project_info] = []
-                    closed_admin_tickets[project_info].append(ticket)
-        except sqlite3.OperationalError:
-        # Handle the case where the table doesn't exist
-            print(f"Table {admin_email_table} does not exist. Skipping admin tickets.")
     conn.close()
 
     return render_template('mentor.html', 
-                     team_members=team_members, 
-                     projects=projects, 
-                     mentor_teams=mentor_teams,
-                     selected_team=selected_team,
-                     active_projects=active_projects,
-                     closed_projects=closed_projects,
-                     tickets=tickets,
-                     projects_all=projects_dict,
-                     current_admin_tickets=current_admin_tickets,
-                     closed_admin_tickets=closed_admin_tickets)  
+                           team_members=team_members, 
+                           projects=projects, 
+                           mentor_teams=mentor_teams,
+                           selected_team=selected_team,
+                           active_projects=active_projects,
+                           closed_projects=closed_projects,
+                           tickets=tickets,
+                           projects_all=projects_dict,
+                           current_admin_tickets=current_admin_tickets,
+                           closed_admin_tickets=closed_admin_tickets)
 
 @app.route('/create_project', methods=['POST'])
 def create_project():
@@ -1740,31 +1725,36 @@ def close_expired_tickets():
     for user in users:
         user_email = user[0]
         admin_email_table = f'admin_tickets_{user_email.replace("@", "_").replace(".", "_")}'
-        c.execute(f"""
-            SELECT * FROM {admin_email_table} WHERE closed_date IS NULL
-        """)
-        admin_tickets_detail = c.fetchall()
 
-        # Check if there are any admin tickets to process
-        if not admin_tickets_detail:
-            print(f"No open admin tickets found for {user_email}.")
-            continue  # Skip to the next user if no tickets are found
+        try:
+            c.execute(f"""
+                SELECT * FROM {admin_email_table} WHERE closed_date IS NULL
+            """)
+            admin_tickets_detail = c.fetchall()
 
-        for admin_ticket in admin_tickets_detail:
-            admin_ticket_id = admin_ticket[0]  # Assuming the first column is the ticket ID
-            admin_expected_date = admin_ticket[5]  # Assuming the expected_date is in the 6th column (index 5)
+            # Check if there are any admin tickets to process
+            if not admin_tickets_detail:
+                print(f"No open admin tickets found for {user_email}.")
+                continue  # Skip to the next user if no tickets are found
 
-            # Close admin tickets where expected_date is less than or equal to current_time
-            if admin_expected_date <= current_time:
-                try:
-                    c.execute(f"""
-                        UPDATE {admin_email_table}
-                        SET closed_date = ?, status = 'closed',
-                            duration_days = CAST((julianday(?) - julianday(start_date)) AS INTEGER)
-                        WHERE id = ?
-                    """, (admin_expected_date, admin_expected_date, admin_ticket_id))
-                except sqlite3.OperationalError:
-                    print(f"Error updating admin ticket {admin_ticket_id} for {user_email}.")
+            for admin_ticket in admin_tickets_detail:
+                admin_ticket_id = admin_ticket[0]  # Assuming the first column is the ticket ID
+                admin_expected_date = admin_ticket[5]  # Assuming the expected_date is in the 6th column (index 5)
+
+                # Close admin tickets where expected_date is less than or equal to current_time
+                if admin_expected_date <= current_time:
+                    try:
+                        c.execute(f"""
+                            UPDATE {admin_email_table}
+                            SET closed_date = ?, status = 'closed',
+                                duration_days = CAST((julianday(?) - julianday(start_date)) AS INTEGER)
+                            WHERE id = ?
+                        """, (admin_expected_date, admin_expected_date, admin_ticket_id))
+                    except sqlite3.OperationalError:
+                        print(f"Error updating admin ticket {admin_ticket_id} for {user_email}.")
+        except sqlite3.OperationalError:
+            print("Invalid Email", "error")
+        
         
     conn.commit()
     conn.close()
