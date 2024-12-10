@@ -335,7 +335,7 @@ def mentor():
                 tickets[member_email] = []
 
             # Fetch current and closed admin tickets
-            admin_email_table = f'admin_tickets_{member_email.replace("@", "_").replace(".", "_")}'
+            admin_email_table = f'admin_tickets_{mentor_email.replace("@", "_").replace(".", "_")}'
             try:
                 c.execute(f"SELECT * FROM {admin_email_table}")
                 admin_tickets = c.fetchall()
