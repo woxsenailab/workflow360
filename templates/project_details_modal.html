@@ -33,11 +33,27 @@
             <h5>Ticket #{{ ticket[0] }}</h5>
             <p><strong>Module:</strong> {{ ticket[2] }}</p>
             <p><strong>Description:</strong> {{ ticket[3] }}</p>
-            <p><strong>Created On:</strong> {{ ticket[6] }}</p> 
+            <p><strong>Created On:</strong> {{ ticket[6] }}</p>
             <p><strong>Start Date:</strong> {{ ticket[4] }}</p>
             <p><strong>Expected Date:</strong> {{ ticket[5] }}</p>
             <p><strong>Status:</strong> {{ ticket[11] }}</p>
             <p><strong>Ticket Closed On:</strong> {{ ticket[7] if ticket[7] else 'Not Yet Closed' }}</p>
+
+            <button onclick="showComments('{{ ticket[0] }}', '{{ member_email }}')">View Comments</button>
+            <div id="comments_{{ ticket[0] }}_{{  member_email }}" style="display: none;">
+                <!-- Comments and replies will be populated here -->
+            </div>
+
+            <!-- <button onclick="showCommentsAdmin('{{ ticket[0] }}', '{{ member_email }}')">View Admin Comments</button>
+            <div id="comments_{{ ticket[0] }}_{{  member_email }}" style="display: none;">
+            </div> -->
+            
+            <h3>Send Comment to User</h3>
+            <form method="POST" action="{{ url_for('send_comment_userAd', ticket_id=ticket[0]) }}">
+                <textarea name="comment" placeholder="Type your comment here..." required></textarea><br>
+                <input type="hidden" name="user_email" value="{{ member_email }}">
+                <button onclick="sendComment('{{ticket[0]}}', '{{member_email}}')">Send Comment</button>
+            </form>
 
             {% if ticket[0] in ticket_updates %}
             <div class="updates">
@@ -52,6 +68,7 @@
                 {% endfor %}
             </div>
             {% endif %}
+
         </div>
         {% endfor %}
         {% else %}
@@ -62,3 +79,102 @@
     <p>Project details not found.</p>
     {% endif %}
 </div>
+
+<script>
+    function showComments(ticketId, memberEmail) {
+        const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
+
+        if (commentsDiv.style.display === 'block') {
+            commentsDiv.style.display = 'none';
+        } else {
+            fetch(`/get_comments/${ticketId}/${memberEmail}`)
+                .then(response => response.json())
+                .then(data => {
+                    commentsDiv.innerHTML = ''; // Clear previous comments
+
+                    data.forEach(item => {
+                        const commentElement = document.createElement('div');
+                        commentElement.classList.add('comment');
+                        commentElement.innerHTML = `
+                    <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                    <p>${item.content}</p>
+                `;
+                        commentsDiv.appendChild(commentElement);
+                    });
+
+                    commentsDiv.style.display = 'block'; // Show the comments
+                })
+                .catch(error => {
+                    console.error('Error fetching comments:', error);
+                });
+        }
+    }
+
+    function showCommentsAdmin(ticketId, memberEmail) {
+            const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
+
+            if (commentsDiv.style.display === 'block') {
+                commentsDiv.style.display = 'none';
+            } else {
+                fetch(`/get_admin_user_comments/${ticketId}/${memberEmail}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        commentsDiv.innerHTML = ''; // Clear previous comments
+
+                        data.forEach(item => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
+                            <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                            <p>${item.content}</p>
+                        `;
+                            commentsDiv.appendChild(commentElement);
+                        });
+
+                        commentsDiv.style.display = 'block'; // Show the comments
+                    })
+                    .catch(error => {
+                        console.error('Error fetching comments:', error);
+                    });
+            }
+        }
+
+    function sendComment(ticketId, memberEmail) {
+        const commentInput = document.querySelector(`textarea[name="comment"]`);
+        const comment = commentInput.value;
+
+        if (!comment) {
+            alert("Please enter a comment.");
+            return;
+        }
+
+        fetch(`/send_comment_userAd/${ticketId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ comment: comment, user_email: memberEmail }) // Ensure user_email is included
+        })
+            .then(response => {
+                if (response.redirected) {
+                    // Handle redirection if the user is not logged in
+                    window.location.href = response.url; // Redirect to login page
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => {
+                if (data && data.success) {
+                    // Clear the input and refresh comments
+                    commentInput.value = '';
+                    // Optionally, refresh the comments section here
+                } else {
+                    alert("Error sending comment: " + (data.message || "Unknown error"));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+    
+</script>

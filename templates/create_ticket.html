@@ -157,7 +157,7 @@
     {% endwith %}
 
     <div class="form-container">
-        <form action="{{ url_for('create_ticket') }}" method="POST">
+        <form action="{{ url_for('create_ticket') }}" method="POST" enctype="multipart/form-data">
             <label for="project_info">Project Name:</label>
             <input type="text" id="project_info" value="{{ project_name }}" readonly
                 style="border: none; background-color: #f8f9fa; color: #495057;" /><br>
@@ -184,6 +184,9 @@
 
             <label for="expected_date">Expected Date:</label>
             <input type="date" name="expected_date" required><br>
+
+            <!-- <label for="images">Upload Images:</label>
+            <input type="file" name="images" id="images" multiple><br> -->
 
             <button type="submit">Create Ticket</button>
         </form>

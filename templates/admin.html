@@ -76,27 +76,84 @@
             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .attendance-table {
-            width: 100%;
+        #attendance-details {
             background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            border-collapse: collapse;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+        }
+
+        #attendance-details h3 {
+            margin-bottom: 20px;
+        }
+
+        #attendance-details label {
+            font-weight: 500;
+            margin-right: 10px;
+        }
+
+        #attendance-details select {
+            margin-right: 20px;
+        }
+
+        #attendance-details input[type="date"] {
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            transition: border-color 0.3s ease;
+        }
+
+        #attendance-details input[type="date"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            outline: none;
+        }
+
+        #attendance-details button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 10px;
+            transition: background 0.3s ease;
+        }
+
+        #attendance-details button:hover {
+            background: var(--secondary);
+        }
+
+        .attendance-table {
             margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
         }
 
         .attendance-table th {
             background: var(--primary);
             color: white;
             padding: 15px;
-            font-weight: 500;
             text-align: left;
         }
 
         .attendance-table td {
             padding: 12px 15px;
             border-bottom: 1px solid var(--border);
+        }
+
+        .attendance-table tr:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .attendance-table tbody tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .attendance-table tbody tr:nth-child(odd) {
+            background-color: #ffffff;
         }
 
         .search-bar {
@@ -405,9 +462,11 @@
             <div class="user-section">
                 <h4>Team: {{ team_name }}</h4>
                 {% if team_name == 'Others' %}
-                <p><h5>Researcher:</h5> {% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
+                <p>
+                <h5>Researcher:</h5> {% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
                 {% else %}
-                <p><h5>Mentor:</h5> {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
+                <p>
+                <h5>Mentor:</h5> {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
                 <h5>Members:</h5>
                 <p>{% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
                 {% endif %}
@@ -454,6 +513,14 @@
                             </li>
                             {% endfor %}
                         </ul>
+                        <!-- Display the download link -->
+                        {% for project in projects %}
+                        {% if project[1] == project_info %}
+                        <a href="{{ url_for('download_project', project_id=project[0]) }}">
+                            Download {{ project[1] }}
+                        </a>
+                        {% endif %}
+                        {% endfor %}
                     </li>
                     {% endfor %}
                 </ul>
@@ -464,7 +531,7 @@
 
         <div id="create-tickets" class="section" style="display:none;">
             <h3>Assign Tickets</h3>
-            <form method="POST" action="{{ url_for('create_ticket_admin') }}">
+            <form method="POST" action="{{ url_for('create_ticket_admin') }}" enctype="multipart/form-data">
                 <label for="team_name">Select Team:</label>
                 <select id="team_name" name="team_name" onchange="updateMentors()">
                     <option value="">Select a team</option>
@@ -496,6 +563,9 @@
                 <label for="end_date">Ticket End Date:</label>
                 <input type="date" id="end_date" name="end_date" required>
 
+                <!-- <label for="images">Upload Images:</label>
+                <input type="file" name="images" id="images" multiple><br> -->
+
                 <input type="submit" value="Assign Ticket">
             </form>
         </div>
@@ -514,6 +584,21 @@
                         <small>Created: {{ ticket[6] }}</small>
                         <a href="#" class="view-details"
                             onclick="showAdminTicketDetails('{{ ticket[0] }}', '{{ ticket[10] }}')">View Details</a>
+                        <h3>Send Comment to User</h3>
+                            <form method="POST" action="{{ url_for('send_comment', ticket_id=ticket[0]) }}">
+                                <label for="comment">Comment:</label>
+                                <textarea name="comment" placeholder="Type your comment here..." required></textarea>
+                                <input type="hidden" name="user_email" value="{{ user_email }}">
+                                <input type="submit" value="Send Comment">
+                            </form>
+                            <h4>Comments:</h4>
+                            <div class="comments">
+                                <button onclick="showAdminComments('{{ ticket[0] }}', '{{ user_email }}')">View Admin
+                                    Comments</button>
+                                    <div id="adminComments_{{ ticket[0] }}_{{ user_email }}" style="display: none;">
+                                        <!-- Admin comments will be populated here -->
+                                    </div>
+                            </div>
                     </li>
                     {% endfor %}
                 </ul>
@@ -545,7 +630,7 @@
                 <select id="monthSelect" onchange="updateAttendance()">
                     <option value="1" {% if selected_month==1 %}selected{% endif %}>January</option>
                     <option value="2" {% if selected_month==2 %}selected{% endif %}>February</option>
-                    <option value=" 3" {% if selected_month==3 %}selected{% endif %}>March</option>
+                    <option value="3" {% if selected_month==3 %}selected{% endif %}>March</option>
                     <option value="4" {% if selected_month==4 %}selected{% endif %}>April</option>
                     <option value="5" {% if selected_month==5 %}selected{% endif %}>May</option>
                     <option value="6" {% if selected_month==6 %}selected{% endif %}>June</option>
@@ -556,9 +641,34 @@
                     <option value="11" {% if selected_month==11 %}selected{% endif %}>November</option>
                     <option value="12" {% if selected_month==12 %}selected{% endif %}>December</option>
                 </select>
+
+                <div>
+                    <label>
+                        <input type="radio" name="reportType" value="daily" onchange="updateDownloadLinks()"> Daily
+                    </label>
+                    <label>
+                        <input type="radio" name="reportType" value="monthly" checked onchange="updateDownloadLinks()">
+                        Monthly
+                    </label>
+                    <label>
+                        <input type="radio" name="reportType" value="yearly" onchange="updateDownloadLinks()"> Yearly
+                    </label>
+                </div>
+
+                <!-- Remove the date selection for monthly and yearly downloads -->
+                <div id="dailyDateSelection" style="display: none;">
+                    <label for="dateSelect">Select Date:</label>
+                    <input type="date" id="dateSelect" onchange="updateDownloadLinks()">
+                </div>
             </div>
             <input type="text" id="attendanceSearchBar" class="search-bar" placeholder="Search by email or date..."
                 oninput="searchAttendance()">
+
+            <button id="downloadDaily" onclick="downloadAttendance('daily')" disabled>Download Daily Attendance</button>
+            <button id="downloadMonthly" onclick="downloadAttendance('monthly')" disabled>Download Monthly
+                Attendance</button>
+            <button id="downloadYearly" onclick="downloadAttendance('yearly')" disabled>Download Yearly
+                Attendance</button>
 
             <table class="attendance-table" id="attendanceTable">
                 <thead>
@@ -581,9 +691,13 @@
                             {% endfor %}
                         </td> <!-- Login Time -->
                         <td>
-                            {% for time in record[3].split(',') %}
-                            {{ loop.index }}) {{ time }}<br>
-                            {% endfor %}
+                            {% if record[3] is not none %}
+                                {% for time in record[3].split(',') %}
+                                    {{ loop.index }}) {{ time }}<br>
+                                {% endfor %}
+                            {% else %}
+                                No logout times recorded.
+                            {% endif %}
                         </td> <!-- Logout Time -->
                         <td>{{ record[5] }}</td> <!-- Duration -->
                     </tr>
@@ -591,36 +705,34 @@
                 </tbody>
             </table>
         </div>
-    </div>
 
-
-    <div class="modal" id="projectDetailsModal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <div id="modalUpdatesContent"></div>
+        <div class="modal" id="projectDetailsModal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <div id="modalUpdatesContent"></div>
+            </div>
         </div>
-    </div>
 
-    <script>
-        function showSection(section) {
-            const sections = document.querySelectorAll('.section');
-            sections.forEach(s => {
-                s.style.display = 'none';
-            });
-            document.getElementById(section).style.display = 'block';
-        }
+        <script>
+            function showSection(section) {
+                const sections = document.querySelectorAll('.section');
+                sections.forEach(s => {
+                    s.style.display = 'none';
+                });
+                document.getElementById(section).style.display = 'block';
+            }
 
-        function showProjectDetails(projectInfo, teamName, memberEmail) {
-            const modal = document.getElementById('projectDetailsModal');
-            const modalContent = document.getElementById('modalUpdatesContent');
+            function showProjectDetails(projectInfo, teamName, memberEmail) {
+                const modal = document.getElementById('projectDetailsModal');
+                const modalContent = document.getElementById('modalUpdatesContent');
 
-            modalContent.innerHTML = '<p>Loading project details...</p>';
-            modal.classList.add('show');
+                modalContent.innerHTML = '<p>Loading project details...</p>';
+                modal.classList.add('show');
 
-            fetch(`/admin/project_details/${encodeURIComponent(projectInfo)}/${encodeURIComponent(teamName)}/${encodeURIComponent(memberEmail)}`)
-                .then(response => response.json())
-                .then(data => {
-                    modalContent.innerHTML = `
+                fetch(`/admin/project_details/${encodeURIComponent(projectInfo)}/${encodeURIComponent(teamName)}/${encodeURIComponent(memberEmail)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        modalContent.innerHTML = `
                     <h4>Project: ${data.project_info}</h4>
                     <p>Description: ${data.description}</p>
                     <p>Status: ${data.status}</p>
@@ -637,192 +749,192 @@
                         `).join('')}</ul>
                     ` : '<p>No tickets assigned for this project.</p>'}
                 `;
-                })
-                .catch(error => {
-                    console.error('Error fetching project details:', error);
-                    modalContent.innerHTML = '<p>Error loading project details</p>';
-                });
-        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching project details:', error);
+                        modalContent.innerHTML = '<p>Error loading project details</p>';
+                    });
+            }
 
-        function closeModal() {
-            document.getElementById('projectDetailsModal').classList.remove('show');
-        }
+            function closeModal() {
+                document.getElementById('projectDetailsModal').classList.remove('show');
+            }
 
-        function searchUser() {
-            const searchQuery = document.getElementById('searchBar').value.toLowerCase();
-            const users = document.querySelectorAll('.user-section');
-            users.forEach(user => {
-                const userName = user.textContent.toLowerCase();
-                if (userName.includes(searchQuery)) {
-                    user.style.display = 'block'; // Show user if matched
-                } else {
-                    user.style.display = 'none'; // Hide user if no match
-                }
-            });
-        }
-
-        function showProjectDetails(projectInfo, teamName, memberEmail) {
-            const modal = document.getElementById('projectDetailsModal');
-            const modalContent = document.getElementById('modalUpdatesContent');
-
-            modalContent.innerHTML = '<p>Loading project details...</p>';
-            modal.classList.add('show');
-
-            fetch(`/admin/project_details/${encodeURIComponent(projectInfo)}/${encodeURIComponent(teamName)}/${encodeURIComponent(memberEmail)}`)
-                .then(response => response.text())
-                .then(html => {
-                    modalContent.innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    modalContent.innerHTML = '<p>Error loading project details</p>';
-                });
-        }
-
-        function searchAttendance() {
-            const query = document.getElementById('attendanceSearchBar').value.toLowerCase();
-            const rows = document.querySelectorAll('#attendanceTableBody tr');
-
-            rows.forEach(row => {
-                const email = row.cells[0].textContent.toLowerCase(); // Email in the first cell
-                const date = row.cells[1].textContent.toLowerCase(); // Date in the second cell
-
-                const matchEmail = email.includes(query);
-                const matchDate = date.includes(query); // Check if the query matches the date
-
-                if (matchEmail || matchDate) {
-                    row.style.display = ''; // Show row if either matches
-                } else {
-                    row.style.display = 'none'; // Hide row if no match
-                }
-            });
-        }
-
-        function changeYear() {
-            const year = document.getElementById('yearSelect').value;
-            const month = document.getElementById('monthSelect').value;
-            window.location.href = `?year=${year}&month=${month}`;
-        }
-
-        function changeMonth() {
-            const year = document.getElementById('yearSelect').value;
-            const month = document.getElementById('monthSelect').value;
-            window.location.href = `?year=${year}&month=${month}`;
-        }
-
-        document.getElementById('monthSelect').addEventListener('change', updateAttendance);
-        document.getElementById('yearSelect').addEventListener('change', updateAttendance);
-
-        function updateAttendance() {
-            const year = document.getElementById('yearSelect').value;
-            const month = document.getElementById('monthSelect').value;
-
-            fetch(`/admin/attendance?year=${year}&month=${month}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok ' + response.statusText);
+            function searchUser() {
+                const searchQuery = document.getElementById('searchBar').value.toLowerCase();
+                const users = document.querySelectorAll('.user-section');
+                users.forEach(user => {
+                    const userName = user.textContent.toLowerCase();
+                    if (userName.includes(searchQuery)) {
+                        user.style.display = 'block';
+                    } else {
+                        user.style.display = 'none';
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    const tableBody = document.getElementById('attendanceTableBody');
-                    tableBody.innerHTML = ''; // Clear existing records
+                });
+            }
 
-                    if (data.length === 0) {
-                        tableBody.innerHTML = '<tr><td colspan="5">No records found for this month.</td></tr>';
-                        return;
+            function showProjectDetails(projectInfo, teamName, memberEmail) {
+                const modal = document.getElementById('projectDetailsModal');
+                const modalContent = document.getElementById('modalUpdatesContent');
+
+                modalContent.innerHTML = '<p>Loading project details...</p>';
+                modal.classList.add('show');
+
+                fetch(`/admin/project_details/${encodeURIComponent(projectInfo)}/${encodeURIComponent(teamName)}/${encodeURIComponent(memberEmail)}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        modalContent.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        modalContent.innerHTML = '<p>Error loading project details</p>';
+                    });
+            }
+
+            function searchAttendance() {
+                const query = document.getElementById('attendanceSearchBar').value.toLowerCase();
+                const rows = document.querySelectorAll('#attendanceTableBody tr');
+
+                rows.forEach(row => {
+                    const email = row.cells[0].textContent.toLowerCase();
+                    const date = row.cells[1].textContent.toLowerCase();
+
+                    const matchEmail = email.includes(query);
+                    const matchDate = date.includes(query);
+
+                    if (matchEmail || matchDate) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
                     }
+                });
+            }
 
-                    data.forEach(record => {
-                        const loginTimes = record.login_time.split(','); // Split login times by comma
-                        const logoutTimes = record.logout_time.split(','); // Split logout times by comma
+            function changeYear() {
+                const year = document.getElementById('yearSelect').value;
+                const month = document.getElementById('monthSelect').value;
+                window.location.href = `?year=${year}&month=${month}`;
+            }
 
-                        const loginTimeHtml = loginTimes.map((time, index) => `${index + 1}) ${time}`).join('<br>'); // Create HTML for login times
-                        const logoutTimeHtml = logoutTimes.map((time, index) => `${index + 1}) ${time}`).join('<br>'); // Create HTML for logout times
+            function changeMonth() {
+                const year = document.getElementById('yearSelect').value;
+                const month = document.getElementById('monthSelect').value;
+                window.location.href = `?year=${year}&month=${month}`;
+            }
 
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
+            document.getElementById('monthSelect').addEventListener('change', updateAttendance);
+            document.getElementById('yearSelect').addEventListener('change', updateAttendance);
+
+            function updateAttendance() {
+                const year = document.getElementById('yearSelect').value;
+                const month = document.getElementById('monthSelect').value;
+
+                fetch(`/admin/attendance?year=${year}&month=${month}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok ' + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const tableBody = document.getElementById('attendanceTableBody');
+                        tableBody.innerHTML = ''; // Clear existing records
+
+                        if (data.length === 0) {
+                            tableBody.innerHTML = '<tr><td colspan="5">No records found for this month.</td></tr>';
+                            return;
+                        }
+
+                        data.forEach(record => {
+                            const loginTimes = record.login_time.split(','); // Split login times by comma
+                            const logoutTimes = record.logout_time.split(','); // Split logout times by comma
+
+                            const loginTimeHtml = loginTimes.map((time, index) => `${index + 1}) ${time}`).join('<br>'); // Create HTML for login times
+                            const logoutTimeHtml = logoutTimes.map((time, index) => `${index + 1}) ${time}`).join('<br>'); // Create HTML for logout times
+
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
                     <td>${record.email}</td>
                     <td>${record.date}</td>
                     <td>${loginTimeHtml}</td>
                     <td>${logoutTimeHtml}</td>
                     <td>${record.duration_worked}</td>
                 `;
-                        tableBody.appendChild(row);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error fetching attendance records:', error);
-                    const tableBody = document.getElementById('attendanceTableBody');
-                    tableBody.innerHTML = '<tr><td colspan="5">Error loading records. Please try again later.</td></tr>';
-                });
-        }
-
-        function updateMentors() {
-            const teamSelect = document.getElementById('team_name');
-            const mentorSelect = document.getElementById('mentor_name');
-            const selectedTeam = teamSelect.value;
-
-            // Clear the mentor dropdown
-            mentorSelect.innerHTML = '<option value="">Select Mentor/Member</option>';
-
-            // Fetch mentors and team members for the selected team
-            if (selectedTeam) {
-                fetch(`/get_mentors_and_members/${selectedTeam}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        // Populate mentors
-                        data.mentors.forEach(mentor => {
-                            const option = document.createElement('option');
-                            option.value = mentor.email;
-                            option.textContent = `${mentor.name} (Mentor)`;
-                            mentorSelect.appendChild(option);
-                        });
-
-                        // Populate team members
-                        data.members.forEach(member => {
-                            const option = document.createElement('option');
-                            option.value = member.email;
-                            option.textContent = `${member.name} (Team Member)`;
-                            mentorSelect.appendChild(option);
-                        });
-
-                        data.researchers.forEach(researcher => {
-                            const option = document.createElement('option');
-                            option.value = researcher.email;
-                            option.textContent = `${researcher.name} (Researchers)`;
-                            mentorSelect.appendChild(option);
+                            tableBody.appendChild(row);
                         });
                     })
-                    .catch(error => console.error('Error fetching mentors and members:', error));
+                    .catch(error => {
+                        console.error('Error fetching attendance records:', error);
+                        const tableBody = document.getElementById('attendanceTableBody');
+                        tableBody.innerHTML = '<tr><td colspan="5">Error loading records. Please try again later.</td></tr>';
+                    });
             }
-        }
 
-        function updateHiddenEmail() {
-            const mentorSelect = document.getElementById('mentor_name');
-            const hiddenEmailInput = document.getElementById('mentor_email');
+            function updateMentors() {
+                const teamSelect = document.getElementById('team_name');
+                const mentorSelect = document.getElementById('mentor_name');
+                const selectedTeam = teamSelect.value;
 
-            // Set the hidden input value to the selected option's value (email)
-            hiddenEmailInput.value = mentorSelect.value;
-        }
+                // Clear the mentor dropdown
+                mentorSelect.innerHTML = '<option value="">Select Mentor/Member</option>';
 
-        function showAdminTicketDetails(ticketId, user_email) {
-            const modal = document.getElementById('ticketModal');
-            const ticketDetails = document.getElementById('ticketDetails');
-            const closeBtn = modal.querySelector('.close');
+                // Fetch mentors and team members for the selected team
+                if (selectedTeam) {
+                    fetch(`/get_mentors_and_members/${selectedTeam}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Populate mentors
+                            data.mentors.forEach(mentor => {
+                                const option = document.createElement('option');
+                                option.value = mentor.email;
+                                option.textContent = `${mentor.name} (Mentor)`;
+                                mentorSelect.appendChild(option);
+                            });
 
-            ticketDetails.innerHTML = '<p>Loading ticket details...</p>';
-            modal.style.display = 'block';
+                            // Populate team members
+                            data.members.forEach(member => {
+                                const option = document.createElement('option');
+                                option.value = member.email;
+                                option.textContent = `${member.name} (Team Member)`;
+                                mentorSelect.appendChild(option);
+                            });
 
-            fetch(`/admin_ticket_updates_display_new/${ticketId}/${user_email}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    let content = `
+                            data.researchers.forEach(researcher => {
+                                const option = document.createElement('option');
+                                option.value = researcher.email;
+                                option.textContent = `${researcher.name} (Researchers)`;
+                                mentorSelect.appendChild(option);
+                            });
+                        })
+                        .catch(error => console.error('Error fetching mentors and members:', error));
+                }
+            }
+
+            function updateHiddenEmail() {
+                const mentorSelect = document.getElementById('mentor_name');
+                const hiddenEmailInput = document.getElementById('mentor_email');
+
+                // Set the hidden input value to the selected option's value (email)
+                hiddenEmailInput.value = mentorSelect.value;
+            }
+
+            function showAdminTicketDetails(ticketId, user_email) {
+                const modal = document.getElementById('ticketModal');
+                const ticketDetails = document.getElementById('ticketDetails');
+                const closeBtn = modal.querySelector('.close');
+
+                ticketDetails.innerHTML = '<p>Loading ticket details...</p>';
+                modal.style.display = 'block';
+
+                fetch(`/admin_ticket_updates_display_new/${ticketId}/${user_email}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        let content = `
                         <div class="ticket-details">
                             <h4>Ticket: ${data.ticket[0]}</h4>
                             <p><strong>Description:</strong> ${data.ticket[3]}</p>
@@ -836,74 +948,188 @@
                             <h5>Updates:</h5>
                     `;
 
-                    if (data.daily_updates.length) {
-                        data.daily_updates.forEach(update => {
-                            content += `
+                        if (data.daily_updates.length) {
+                            data.daily_updates.forEach(update => {
+                                content += `
                                 <div class="ticket-update">
                                     <p><strong>${update[2]}:</strong> ${update[3]}</p>
                                     <p><em>Stage: ${update[4]}, State: ${update[5]}</em></p>
                                 </div>
                             `;
-                        });
-                    } else {
-                        content += '<p>No updates for this ticket.</p>';
-                    }
+                            });
+                        } else {
+                            content += '<p>No updates for this ticket.</p>';
+                        }
 
-                    content += '</div>';
-                    ticketDetails.innerHTML = content;
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    ticketDetails.innerHTML = '<p>Error loading ticket details. Please try again.</p>';
-                });
+                        content += '</div>';
+                        ticketDetails.innerHTML = content;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        ticketDetails.innerHTML = '<p>Error loading ticket details. Please try again.</p>';
+                    });
 
-            closeBtn.onclick = function () {
-                modal.style.display = 'none';
-            }
-
-            window.onclick = function (event) {
-                if (event.target == modal) {
+                closeBtn.onclick = function () {
                     modal.style.display = 'none';
                 }
+
+                window.onclick = function (event) {
+                    if (event.target == modal) {
+                        modal.style.display = 'none';
+                    }
+                }
+            }
+        </script>
+
+        <script>
+            document.querySelector('#create-tickets form').addEventListener('submit', function (e) {
+                const startDate = new Date(document.getElementById('start_date').value);
+                const endDate = new Date(document.getElementById('end_date').value);
+
+                // Reset any previous error messages
+                const existingError = document.querySelector('.date-error');
+                if (existingError) {
+                    existingError.remove();
+                }
+
+                // Validate dates
+                if (startDate > endDate) {
+                    e.preventDefault();
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'date-error';
+                    errorDiv.style.color = 'red';
+                    errorDiv.style.marginBottom = '10px';
+                    errorDiv.textContent = 'End date cannot be before start date';
+                    document.getElementById('end_date').after(errorDiv);
+                }
+            });
+        </script>
+
+        <script>
+            // Function to hide the flash messages after 4 seconds
+            window.addEventListener('DOMContentLoaded', (event) => {
+                const flashMessages = document.querySelectorAll('.flash-messages');
+                flashMessages.forEach((message) => {
+                    setTimeout(() => {
+                        message.style.display = 'none';
+                    }, 4000); // 4000 milliseconds = 4 seconds
+                });
+            });
+
+            function downloadAttendance(reportType) {
+                const year = document.getElementById('yearSelect').value;
+                const month = document.getElementById('monthSelect').value;
+                let date = document.getElementById('dateSelect').value;
+
+                if (reportType === 'daily') {
+                    if (!date) {
+                        alert("Please select a date for daily attendance download.");
+                        return;
+                    }
+                    window.location.href = `/admin/download_attendance/daily?date=${date}`;
+                } else if (reportType === 'monthly') {
+                    window.location.href = `/admin/download_attendance/monthly?year=${year}&month=${month}`;
+                } else if (reportType === 'yearly') {
+                    window.location.href = `/admin/download_attendance/yearly?year=${year}`;
+                } else {
+                    alert("Invalid report type selected.");
+                }
+            }
+
+            function updateDownloadLinks() {
+                const reportType = document.querySelector('input[name="reportType"]:checked').value; // Get the selected report type
+                const dateSelection = document.getElementById('dailyDateSelection');
+                const dailyButton = document.getElementById('downloadDaily');
+                const monthlyButton = document.getElementById('downloadMonthly');
+                const yearlyButton = document.getElementById('downloadYearly');
+
+                // Hide date selection for monthly and yearly
+                if (reportType === 'daily') {
+                    dateSelection.style.display = 'block';
+                    dailyButton.disabled = false;
+                    monthlyButton.disabled = true;
+                    yearlyButton.disabled = true;
+                } else {
+                    dateSelection.style.display = 'none';
+                    dailyButton.disabled = true;
+                    if (reportType === 'monthly') {
+                        monthlyButton.disabled = false;
+                        yearlyButton.disabled = true;
+                    } else if (reportType === 'yearly') {
+                        yearlyButton.disabled = false;
+                        monthlyButton.disabled = true;
+                    }
+                }
+            }
+
+            // Call updateDownloadLinks on page load to set the initial state
+            window.onload = function () {
+                updateDownloadLinks();
+            };
+
+
+            function showAdminComments(ticketId, memberEmail) {
+    const commentsDiv = document.getElementById(`adminComments_${ticketId}_${memberEmail}`);
+
+    // Check if the commentsDiv is currently displayed
+    if (commentsDiv.style.display === 'block') {
+        // If it is displayed, hide it
+        commentsDiv.style.display = 'none';
+    } else {
+        // If it is not displayed, fetch and show comments
+        fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
+            .then(response => response.json())
+            .then(data => {
+                commentsDiv.innerHTML = ''; // Clear previous comments
+
+                // Render comments and replies
+                data.forEach(item => {
+                    const commentElement = document.createElement('div');
+                    commentElement.classList.add('comment');
+                    commentElement.innerHTML = `
+                        <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                        <p>${item.content}</p>
+                    `;
+                    commentsDiv.appendChild(commentElement);
+                });
+
+                commentsDiv.style.display = 'block'; // Show the comments
+            })
+            .catch(error => {
+                console.error('Error fetching admin comments:', error);
+            });
+    }
+}
+
+        function showComments(ticketId, memberEmail) {
+            const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
+
+            if (commentsDiv.style.display === 'block') {
+                commentsDiv.style.display = 'none';
+            } else {
+                fetch(`/get_comments/${ticketId}/${memberEmail}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        commentsDiv.innerHTML = ''; // Clear previous comments
+
+                        data.forEach(item => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
+                            <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                            <p>${item.content}</p>
+                        `;
+                            commentsDiv.appendChild(commentElement);
+                        });
+
+                        commentsDiv.style.display = 'block'; // Show the comments
+                    })
+                    .catch(error => {
+                        console.error('Error fetching comments:', error);
+                    });
             }
         }
-    </script>
-
-    <script>
-        document.querySelector('#create-tickets form').addEventListener('submit', function (e) {
-            const startDate = new Date(document.getElementById('start_date').value);
-            const endDate = new Date(document.getElementById('end_date').value);
-
-            // Reset any previous error messages
-            const existingError = document.querySelector('.date-error');
-            if (existingError) {
-                existingError.remove();
-            }
-
-            // Validate dates
-            if (startDate > endDate) {
-                e.preventDefault();
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'date-error';
-                errorDiv.style.color = 'red';
-                errorDiv.style.marginBottom = '10px';
-                errorDiv.textContent = 'End date cannot be before start date';
-                document.getElementById('end_date').after(errorDiv);
-            }
-        });
-    </script>
-
-    <script>
-        // Function to hide the flash messages after 4 seconds
-        window.addEventListener('DOMContentLoaded', (event) => {
-            const flashMessages = document.querySelectorAll('.flash-messages');
-            flashMessages.forEach((message) => {
-                setTimeout(() => {
-                    message.style.display = 'none';
-                }, 4000); // 4000 milliseconds = 4 seconds
-            });
-        });
-    </script>
+        </script>
 </body>
 
 </html>

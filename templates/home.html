@@ -159,6 +159,7 @@
             background: white;
             margin-top: 40px;
         }
+
         .flash-messages {
             background-color: #f8d7da;
             color: #721c24;
@@ -186,6 +187,69 @@
         .flash-messages li {
             margin-bottom: 5px;
         }
+
+
+        .comment {
+            background-color: #f1f5f9;
+            border-left: 4px solid var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            transition: background-color 0.3s ease;
+        }
+
+        .comment:hover {
+            background-color: #e2e8f0;
+        }
+
+        .comment strong {
+            color: var(--primary-color);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .reply {
+            background-color: #e2f8e2;
+            border-left: 4px solid var(--secondary-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 5px 0;
+        }
+
+        .reply strong {
+            color: var(--secondary-color);
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .reply textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-top: 5px;
+            resize: vertical;
+        }
+
+        .reply textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            outline: none;
+        }
+
+        .reply input[type="submit"] {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .reply input[type="submit"]:hover {
+            background-color: #1e40af;
+        }
     </style>
 </head>
 
@@ -211,7 +275,7 @@
         </div>
         {% endif %}
         {% endwith %}
-        
+
         <div class="ticket-section">
             <h3>Assigned Projects</h3>
             {% if assigned_projects %}
@@ -248,143 +312,226 @@
         <div class="ticket-section">
             <h3>Current Tickets</h3>
             {% if current_tickets or current_admin_tickets %}
-                {% if current_tickets %}
-                    {% for ticket in current_tickets %}
-                    <div class="ticket-card">
-                        <div class="ticket-header">
-                            <span class="project-name">{{ ticket[1] }}</span>
-                            <span class="ticket-id">Ticket #{{ ticket[0] }}</span>
+            {% if current_tickets %}
+            {% for ticket in current_tickets %}
+            <div class="ticket-card">
+                <div class="ticket-header">
+                    <span class="project-name">{{ ticket[1] }}</span>
+                    <span class="ticket-id">Ticket #{{ ticket[0] }}</span>
+                </div>
+                <div class="ticket-content">
+                    <div class="ticket-info-column">
+                        <div class="ticket-info">
+                            <strong>Project Description:</strong>
+                            <p>{{ ticket[3] }}</p>
                         </div>
-                        <div class="ticket-content">
-                            <div class="ticket-info-column">
-                                <div class="ticket-info">
-                                    <strong>Project Description:</strong>
-                                    <p>{{ ticket[3] }}</p>
-                                </div>
-                                <div class="ticket-info">
-                                    <strong>Project Module:</strong>
-                                    <p>{{ ticket[2] }}</p>
-                                </div>
-                            </div>
-                            <div class="ticket-info-column">
-                                <div class="ticket-info">
-                                    <strong>Ticket Created:</strong> {{ ticket[6] }}
-                                </div>
-                                <div class="ticket-info">
-                                    <strong>Start Date:</strong> {{ ticket[4] }}
-                                </div>
-                                <div class="ticket-info">
-                                    <strong>Expected Date:</strong> {{ ticket[5] }}
-                                </div>
-                            </div>
+                        <div class="ticket-info">
+                            <strong>Project Module:</strong>
+                            <p>{{ ticket[2] }}</p>
                         </div>
-                        <div class="ticket-actions">
-                            <a href="{{ url_for('ticket_details', ticket_id=ticket[0]) }}" class="btn btn-update">Add Daily Update</a>
-                            <form action="{{ url_for('close_ticket', ticket_id=ticket[0]) }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-close">Close Ticket</button>
+                    </div>
+                    <div class="ticket-info-column">
+                        <div class="ticket-info">
+                            <strong>Ticket Created:</strong> {{ ticket[6] }}
+                        </div>
+                        <div class="ticket-info">
+                            <strong>Start Date:</strong> {{ ticket[4] }}
+                        </div>
+                        <div class="ticket-info">
+                            <strong>Expected Date:</strong> {{ ticket[5] }}
+                        </div>
+                    </div>
+                </div>
+                <div class="ticket-actions">
+                    <a href="{{ url_for('ticket_details', ticket_id=ticket[0]) }}" class="btn btn-update">Add Daily
+                        Update</a>
+                    <form action="{{ url_for('close_ticket', ticket_id=ticket[0]) }}" method="POST"
+                        style="display:inline;">
+                        <button type="submit" class="btn btn-close">Close Ticket</button>
+                    </form>
+                </div>
+                <h4>Comments:</h4>
+                {% if user_ticket_comments[ticket[0]] %}
+                <div class="comments">
+                    <div>
+                        <button onclick="showComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Comments</button>
+                        <button onclick="showReplyForm('{{ ticket[0] }}')">Reply</button>
+                        <div id="replyForm_{{ ticket[0] }}" class="reply-form" style="display:none;">
+                            <form method="POST" action="{{ url_for('reply_comment_user', comment_id=ticket[0]) }}">
+                                <textarea name="reply" required placeholder="Type your reply here..."></textarea>
+                                <input type="submit" value="Send Reply">
                             </form>
                         </div>
                     </div>
-                    {% endfor %}
-                {% endif %}
-    
-                {% if current_admin_tickets %}
-                    {% for ticket in current_admin_tickets %}
-                    <div class="ticket-card">
-                        <div class="ticket-header">
-                            <span class="project-name">{{ ticket[1] }}</span>
-                            <span class="ticket-id">Admin Created Ticket #{{ ticket[0] }}</span>
-                        </div>
-                        <div class="ticket-content">
-                            <div class="ticket-info-column">
-                                <div class="ticket-info">
-                                    <strong>Description:</strong>
-                                    <p>{{ ticket[3] }}</p>
-                                </div>
-                                <div class="ticket-info">
-                                    <strong>Created On:</strong>
-                                    <p>{{ ticket[6] }}</p>
-                                </div>
-                            </div>
-                            <div class="ticket-info-column">
-                                <div class="ticket-info">
-                                    <strong>Start Date:</strong>
-                                    <p>{{ ticket[4] }}</p>
-                                </div>
-                                <div class="ticket-info">
-                                    <strong>Expected Date:</strong>
-                                    <p>{{ ticket[5] }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="ticket-actions">
-                            <a href="{{ url_for('admin_ticket_details', ticket_id=ticket[0], source='home') }}" class="btn btn-update">Add Daily Update</a>
-                            <form action="{{ url_for('admin_close_ticket', ticket_id=ticket[0], source='home') }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-close">Close Ticket</button>
+                    <div id="comments_{{ ticket[0] }}" style="display: none;">
+                        <!-- Comments and replies will be populated here -->
+                    </div><br>
+                    <div>
+                        <button onclick="showCommentsAdmin(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin Comments</button>
+                        <button onclick="showReplyForm1('{{ ticket[0] }}')">Reply</button>
+                        <div id="replyForm1_{{ ticket[0] }}" class="reply-form" style="display:none;">
+                            <form method="POST" action="{{ url_for('reply_comment_user_admin', comment_id=ticket[0]) }}">
+                                <textarea name="reply" required placeholder="Type your reply here..."></textarea>
+                                <input type="submit" value="Send Reply">
                             </form>
                         </div>
+                        <div id="comments_{{ ticket[0] }}_{{session['email']}}" style="display: none;">
+                            <!-- Comments and replies will be populated here -->
+                        </div>
                     </div>
-                    {% endfor %}
+                </div>
+                {% else %}
+                <p>No comments available for this ticket.</p>
                 {% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% if current_admin_tickets %}
+            {% for ticket in current_admin_tickets %}
+            <div class="ticket-card">
+                <div class="ticket-header">
+                    <span class="project-name">{{ ticket[1] }}</span>
+                    <span class="ticket-id">Admin Created Ticket #{{ ticket[0] }}</span>
+                </div>
+                <div class="ticket-content">
+                    <div class="ticket-info-column">
+                        <div class="ticket-info">
+                            <strong>Description:</strong>
+                            <p>{{ ticket[3] }}</p>
+                        </div>
+                        <div class="ticket-info">
+                            <strong>Created On:</strong>
+                            <p>{{ ticket[6] }}</p>
+                        </div>
+                    </div>
+                    <div class="ticket-info-column">
+                        <div class="ticket-info">
+                            <strong>Start Date:</strong>
+                            <p>{{ ticket[4] }}</p>
+                        </div>
+                        <div class="ticket-info">
+                            <strong>Expected Date:</strong>
+                            <p>{{ ticket[5] }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="ticket-actions">
+                    <a href="{{ url_for('admin_ticket_details', ticket_id=ticket[0], source='home') }}"
+                        class="btn btn-update">Add Daily Update</a>
+                    <form action="{{ url_for('admin_close_ticket', ticket_id=ticket[0], source='home') }}" method="POST"
+                        style="display:inline;">
+                        <button type="submit" class="btn btn-close">Close Ticket</button>
+                    </form>
+                </div>
+                <h4>Comments:</h4>
+                {% if ticket_comments[ticket[0]] %}
+                <div class="comments">
+                    <button onclick="showAdminComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin Comments</button>
+                    <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                        <!-- Admin comments will be populated here -->
+                    </div>
+                    <button onclick="showReplyForm2('{{ ticket[0] }}')">Reply</button>
+                    <div id="replyForm2_{{ ticket[0] }}" class="reply-form" style="display:none;">
+                        <form method="POST" action="{{ url_for('reply_comment', comment_id=ticket[0]) }}">
+                            <textarea name="reply" required placeholder="Type your reply here..."></textarea>
+                            <input type="submit" value="Send Reply">
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <p>No comments available for this ticket.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
             {% else %}
-                <p>No current tickets available.</p>
+            <p>No current tickets available.</p>
             {% endif %}
         </div>
-    
+
         <div class="ticket-section">
             <h3>Closed Tickets</h3>
             <div class="closed-tickets">
                 {% if closed_tickets or closed_admin_tickets %}
-                    {% if closed_tickets %}
-                        {% for project, tickets in closed_tickets.items() %}
-                        <div class="project-card">
-                            <div class="project-title">{{ project }}</div>
-                            {% for ticket in tickets %}
-                            <div class="ticket-info">
-                                <strong>Ticket #{{ ticket[0] }}</strong>
-                                <p><strong>Description:</strong> {{ ticket[3] }}</p>
-                                <div class="ticket-details">
-                                    <p><strong>Module:</strong> {{ ticket[2] }}</p>
-                                    <p><strong>Ticket Created On:</strong> {{ ticket[6] }}</p>
-                                    <p><strong>Ticket Started:</strong> {{ ticket[4] }}</p>
-                                    <p><strong>Ticket Expected To End:</strong> {{ ticket[5] }}</p>
-                                    <p><strong>Ticket Closed:</strong> {{ ticket[7] }}</p>
-                                </div>
-                                <!-- <div class="stages">
+                {% if closed_tickets %}
+                {% for project, tickets in closed_tickets.items() %}
+                <div class="project-card">
+                    <div class="project-title">{{ project }}</div>
+                    {% for ticket in tickets %}
+                    <div class="ticket-info">
+                        <strong>Ticket #{{ ticket[0] }}</strong>
+                        <p><strong>Description:</strong> {{ ticket[3] }}</p>
+                        <div class="ticket-details">
+                            <p><strong>Module:</strong> {{ ticket[2] }}</p>
+                            <p><strong>Ticket Created On:</strong> {{ ticket[6] }}</p>
+                            <p><strong>Ticket Started:</strong> {{ ticket[4] }}</p>
+                            <p><strong>Ticket Expected To End:</strong> {{ ticket[5] }}</p>
+                            <p><strong>Ticket Closed:</strong> {{ ticket[7] }}</p>
+                        </div>
+                        <!-- <div class="stages">
                                     {% for stage in stages_for_closed_tickets[ticket[0]] %}
                                     <p class="stage"><strong>Stage: </strong>{{ stage }}</p>
                                     {% endfor %}
                                 </div> -->
-                                <a href="{{ url_for('ticket_updates', ticket_id=ticket[0]) }}" class="btn btn-update">View Updates</a>
-                            </div>
-                            {% endfor %}
+                        <a href="{{ url_for('ticket_updates', ticket_id=ticket[0]) }}" class="btn btn-update">View
+                            Updates</a>
+                    </div>
+                    <h3>Commments</h3>
+                    {% if user_ticket_comments[ticket[0]] %}
+                    <div class="comments">
+                        <button onclick="showComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Comments</button>
+                        <div id="comments_{{ ticket[0] }}" style="display: none;">
+                            <!-- Comments and replies will be populated here -->
                         </div>
-                        {% endfor %}
-                    {% endif %}
-    
-                    {% if closed_admin_tickets %}
-                        {% for project, tickets in closed_admin_tickets.items() %}
-                        <div class="project-card">
-                            <div class="project-title">{{ project }}</div>
-                            {% for ticket in tickets %}
-                            <div class="ticket-info">
-                                <strong>Admin Created Ticket #{{ ticket[0] }}</strong>
-                                <p><strong>Description:</strong> {{ ticket[3] }}</p>
-                                        <div class="ticket-details">
-                                            <p><strong>Module:</strong> {{ ticket[2] }}</p>
-                                            <p><strong>Ticket Created On:</strong> {{ ticket[6] }}</p>
-                                            <p><strong>Ticket Started:</strong> {{ ticket[4] }}</p>
-                                            <p><strong>Ticket Expected To End:</strong> {{ ticket[5] }}</p>
-                                            <p><strong>Ticket Closed:</strong> {{ ticket[7] }}</p>
-                                        </div>
-                                <a href="{{ url_for('admin_ticket_updates', ticket_id=ticket[0], source='home') }}" class="btn btn-update">View Updates</a>
-                            </div>
-                            {% endfor %}
+                        <button onclick="showCommentsAdmin(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin Comments</button>
+                        <div id="comments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                            <!-- Comments and replies will be populated here -->
                         </div>
-                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p>No comments available for this ticket.</p>
                     {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                {% if closed_admin_tickets %}
+                {% for project, tickets in closed_admin_tickets.items() %}
+                <div class="project-card">
+                    <div class="project-title">{{ project }}</div>
+                    {% for ticket in tickets %}
+                    <div class="ticket-info">
+                        <strong>Admin Created Ticket #{{ ticket[0] }}</strong>
+                        <p><strong>Description:</strong> {{ ticket[3] }}</p>
+                        <div class="ticket-details">
+                            <p><strong>Module:</strong> {{ ticket[2] }}</p>
+                            <p><strong>Ticket Created On:</strong> {{ ticket[6] }}</p>
+                            <p><strong>Ticket Started:</strong> {{ ticket[4] }}</p>
+                            <p><strong>Ticket Expected To End:</strong> {{ ticket[5] }}</p>
+                            <p><strong>Ticket Closed:</strong> {{ ticket[7] }}</p>
+                        </div>
+                        <a href="{{ url_for('admin_ticket_updates', ticket_id=ticket[0], source='home') }}"
+                            class="btn btn-update">View Updates</a>
+                    </div>
+                    <h4>Comments:</h4>
+                    {% if ticket_comments[ticket[0]] %}
+                    <div class="comments">
+                        <button onclick="showAdminComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin Comments</button>
+                        <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                            <!-- Admin comments will be populated here -->
+                        </div>
+                    </div>
+                    {% else %}
+                    <p>No comments available for this ticket.</p>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                {% endif %}
                 {% else %}
-                    <p>No closed tickets available.</p>
+                <p>No closed tickets available.</p>
                 {% endif %}
             </div>
         </div>
@@ -414,6 +561,119 @@
                 }, 4000); // 4000 milliseconds = 4 seconds
             });
         });
+
+        function showAdminComments(ticketId, memberEmail) {
+            const commentsDiv = document.getElementById(`adminComments_${ticketId}_${memberEmail}`);
+
+            // Check if the commentsDiv is currently displayed
+            if (commentsDiv.style.display === 'block') {
+                // If it is displayed, hide it
+                commentsDiv.style.display = 'none';
+            } else {
+                // If it is not displayed, fetch and show comments
+                fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        commentsDiv.innerHTML = ''; // Clear previous comments
+
+                        // Render comments and replies
+                        data.forEach(item => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
+                        <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                        <p>${item.content}</p>
+                    `;
+                            commentsDiv.appendChild(commentElement);
+                        });
+
+                        commentsDiv.style.display = 'block'; // Show the comments
+                    })
+                    .catch(error => {
+                        console.error('Error fetching admin comments:', error);
+                    });
+            }
+        }
+
+
+        function showComments(ticketId, memberEmail) {
+            const commentsDiv = document.getElementById(`comments_${ticketId}`);
+
+            if (commentsDiv.style.display === 'block') {
+                commentsDiv.style.display = 'none';
+            } else {
+                fetch(`/get_comments/${ticketId}/${memberEmail}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        commentsDiv.innerHTML = ''; // Clear previous comments
+
+                        data.forEach(item => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
+                            <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                            <p>${item.content}</p>
+                        `;
+                            commentsDiv.appendChild(commentElement);
+                        });
+
+                        commentsDiv.style.display = 'block'; // Show the comments
+                    })
+                    .catch(error => {
+                        console.error('Error fetching comments:', error);
+                    });
+            }
+        }
+
+        function showCommentsAdmin(ticketId, memberEmail) {
+            const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
+
+            if (commentsDiv.style.display === 'block') {
+                commentsDiv.style.display = 'none';
+            } else {
+                fetch(`/get_admin_user_comments/${ticketId}/${memberEmail}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        commentsDiv.innerHTML = ''; // Clear previous comments
+
+                        data.forEach(item => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
+                            <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                            <p>${item.content}</p>
+                        `;
+                            commentsDiv.appendChild(commentElement);
+                        });
+
+                        commentsDiv.style.display = 'block'; // Show the comments
+                    })
+                    .catch(error => {
+                        console.error('Error fetching comments:', error);
+                    });
+            }
+        }
+        
+        function showReplyForm(commentId) {
+            const replyForm = document.getElementById(`replyForm_${commentId}`);
+            if (replyForm) {
+                replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function showReplyForm1(commentId) {
+            const replyForm = document.getElementById(`replyForm1_${commentId}`);
+            if (replyForm) {
+                replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function showReplyForm2(commentId) {
+            const replyForm = document.getElementById(`replyForm2_${commentId}`);
+            if (replyForm) {
+                replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+            }
+        }
     </script>
 </body>
 

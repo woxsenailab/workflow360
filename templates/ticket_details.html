@@ -180,6 +180,11 @@
         <div class="update-box">
             {% for update in daily_updates %}
             <p><strong>{{ update[2] }} ({{ update[4] }}):</strong> {{ update[3] }}</p>
+            {% if update[6] %}
+            <img src="data:image/jpeg;base64,{{ update[6]|b64encode }}" alt="Update Image" style="width: 100px; height: 100px;"/>
+            {% else %}
+            <p>No image available for this update.</p>
+            {% endif %}
             {% endfor %}
         </div>
         {% else %}
@@ -187,7 +192,7 @@
         {% endif %}
 
         {% if closed_date is none or today_date <= closed_date %} 
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <label for="daily_description">Add Your Daily Update:</label>
                 <textarea name="daily_description" required></textarea>
 
@@ -200,6 +205,9 @@
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
                 </select>
+
+                <label for="images">Upload Images:</label>
+                <input type="file" name="images" id="images" multiple><br>
 
                 <button type="submit">Add Daily Update</button>
             </form>

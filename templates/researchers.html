@@ -187,6 +187,68 @@
         .flash-messages li {
             margin-bottom: 5px;
         }
+
+        .comment {
+            background-color: #f1f5f9;
+            border-left: 4px solid var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            transition: background-color 0.3s ease;
+        }
+
+        .comment:hover {
+            background-color: #e2e8f0;
+        }
+
+        .comment strong {
+            color: var(--primary-color);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .reply {
+            background-color: #e2f8e2;
+            border-left: 4px solid var(--secondary-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 5px 0;
+        }
+
+        .reply strong {
+            color: var(--secondary-color);
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .reply textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-top: 5px;
+            resize: vertical;
+        }
+
+        .reply textarea:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            outline: none;
+        }
+
+        .reply input[type="submit"] {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .reply input[type="submit"]:hover {
+            background-color: #23cf57;
+        }
     </style>
 </head>
 
@@ -252,6 +314,21 @@
                         <button type="submit" class="btn btn-close">Close Ticket</button>
                     </form>
                 </div>
+                <h4>Comments:</h4>
+                <div class="comments">
+                    <button onclick="showAdminComments('{{ ticket[0] }}', `{{ session['email'] }}`)">View Admin
+                        Comments</button>
+                        <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                            <!-- Admin comments will be populated here -->
+                        </div>
+                        <button onclick="showReplyForm('{{ ticket[0] }}')">Reply</button>
+                        <div id="replyForm_{{ ticket[0] }}" class="reply-form" style="display:none;">
+                            <form method="POST" action="{{ url_for('reply_comment', comment_id=ticket[0]) }}">
+                                <textarea name="reply" required placeholder="Type your reply here..."></textarea>
+                                <input type="submit" value="Send Reply">
+                            </form>
+                        </div>
+                </div>
             </div>
             {% endfor %}
             {% else %}
@@ -279,6 +356,12 @@
                                 </div>
                         <a href="{{ url_for('admin_ticket_updates', ticket_id=ticket[0], source='researchers') }}"
                             class="btn btn-update">View Updates</a>
+                            <h4>Comments:</h4>
+                    <button onclick="showAdminComments('{{ ticket[0] }}', `{{ session['email'] }}`)">View Admin
+                        Comments</button>
+                        <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                            <!-- Admin comments will be populated here -->
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -299,10 +382,47 @@
         </div>
         {% endif %}
     </div>
+<script>
+           function showAdminComments(ticketId, memberEmail) {
+    const commentsDiv = document.getElementById(`adminComments_${ticketId}_${memberEmail}`);
 
-    <footer>
-        <!-- <p>&copy; 2024 Your Company. All Rights Reserved.</p> -->
-    </footer>
+    // Check if the commentsDiv is currently displayed
+    if (commentsDiv.style.display === 'block') {
+        // If it is displayed, hide it
+        commentsDiv.style.display = 'none';
+    } else {
+        // If it is not displayed, fetch and show comments
+        fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
+            .then(response => response.json())
+            .then(data => {
+                commentsDiv.innerHTML = ''; // Clear previous comments
+
+                // Render comments and replies
+                data.forEach(item => {
+                    const commentElement = document.createElement('div');
+                    commentElement.classList.add('comment');
+                    commentElement.innerHTML = `
+                        <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                        <p>${item.content}</p>
+                    `;
+                    commentsDiv.appendChild(commentElement);
+                });
+
+                commentsDiv.style.display = 'block'; // Show the comments
+            })
+            .catch(error => {
+                console.error('Error fetching admin comments:', error);
+            });
+    }
+}
+
+function showReplyForm(commentId) {
+            const replyForm = document.getElementById(`replyForm_${commentId}`);
+            if (replyForm) {
+                replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+</script>
 </body>
 
 </html>

@@ -1,13 +1,33 @@
-from flask import Flask, jsonify, render_template, request, redirect, url_for, flash, session
+from flask import Flask, jsonify, render_template, request, redirect, url_for, flash, session, Response, send_file
 import sqlite3
+import os
+import zipfile
+import csv
 from datetime import datetime, timedelta
+import base64
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
 # Add these session configurations
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=13)  # Session lasts for 7 days
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=13)
 app.config['SESSION_PERMANENT'] = True
+
+# Set the allowed image extensions
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
+
+# Check if the file is allowed
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.template_filter('b64encode')
+def b64encode(data):
+    if isinstance(data, bytes):  
+        return base64.b64encode(data).decode('utf-8')
+    return '' 
 
 # SQL Database setup
 def sql_connector():
@@ -54,8 +74,110 @@ def sql_connector():
     );
     """)
 
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS tickets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT,
+            status TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+        # Create comments table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS user_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER,
+            admin_email TEXT,
+            user_email TEXT,
+            comment TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            role TEXT, 
+            team_name TEXT,
+            FOREIGN KEY (ticket_id) REFERENCES tickets(id)
+        );
+    """)
+
+    # Create replies table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS user_replies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            comment_id INTEGER,
+            admin_email TEXT,
+            user_email TEXT,
+            reply TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            role TEXT, 
+            team_name TEXT,
+            FOREIGN KEY (comment_id) REFERENCES comments(id)
+        );
+    """)
+
+    # Create comments table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS admin_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER,
+            admin_email TEXT,
+            user_email TEXT,
+            comment TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,            
+            role TEXT, 
+            team_name TEXT,
+            FOREIGN KEY (ticket_id) REFERENCES tickets(id)
+        );
+    """)
+
+    # Create replies table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS admin_replies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            comment_id INTEGER,
+            admin_email TEXT,
+            user_email TEXT,
+            reply TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            role TEXT, 
+            team_name TEXT,
+            FOREIGN KEY (comment_id) REFERENCES comments(id)
+        );
+    """)
+
+    # Create comments table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS admin_user_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER,
+            admin_email TEXT,
+            user_email TEXT,
+            comment TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,            
+            role TEXT, 
+            team_name TEXT,
+            mentor_email TEXT,
+            FOREIGN KEY (ticket_id) REFERENCES tickets(id)
+        );
+    """)
+
+    # Create replies table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS admin_user_replies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            comment_id INTEGER,
+            admin_email TEXT,
+            user_email TEXT,
+            reply TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            role TEXT, 
+            team_name TEXT,
+            mentor_email TEXT,
+            FOREIGN KEY (comment_id) REFERENCES comments(id)
+        );
+    """)
     conn.commit()
     conn.close()
+
+# sql_connector()
 
 # Route for signing up a user
 @app.route('/signup', methods=['GET', 'POST'])
@@ -182,7 +304,7 @@ def login():
             flash("Invalid credentials. Please try again.", "error")
             return redirect(url_for('login'))
     
-    return render_template('login.html')  # Ensure you have a login.html template
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout():
@@ -301,6 +423,10 @@ def mentor():
     projects_dict = {}
     current_admin_tickets = []
     closed_admin_tickets = {}
+    ticket_comments = {} 
+    user_ticket_comments = {}
+    ticket_comments_rply = {} 
+    user_ticket_comments_rply = {}
 
     if selected_team:
         c.execute("SELECT * FROM signup WHERE team_name = ? AND email != ? AND role = 'team_member'", 
@@ -336,12 +462,21 @@ def mentor():
                 # Handle the case where the table does not exist
                 tickets[member_email] = []
 
+            for ticket in member_tickets:
+                user_ticket_id = ticket[0] 
+                c.execute("SELECT * FROM user_comments WHERE ticket_id = ?", (user_ticket_id,))
+                user_comments = c.fetchall()
+                user_ticket_comments[user_ticket_id] = user_comments
+
+                c.execute("SELECT * FROM user_replies WHERE comment_id = ?", (user_ticket_id,))
+                usercommentsRply = c.fetchall()
+                user_ticket_comments_rply[user_ticket_id] = usercommentsRply
+
             # Fetch current and closed admin tickets
             admin_email_table = f'admin_tickets_{mentor_email.replace("@", "_").replace(".", "_")}'
             try:
                 c.execute(f"SELECT * FROM {admin_email_table}")
                 admin_tickets = c.fetchall()
-
                 # Process the admin tickets
                 for ticket in admin_tickets:
                     closed_date = ticket[7]  # Assuming closed_date is the 8th column
@@ -352,6 +487,15 @@ def mentor():
                         if project_info not in closed_admin_tickets:
                             closed_admin_tickets[project_info] = []
                         closed_admin_tickets[project_info].append(ticket)
+                    
+                    admin_ticket_id = ticket[0] 
+                    c.execute("SELECT * FROM admin_comments WHERE ticket_id = ? AND user_email = ?", (admin_ticket_id, mentor_email,))
+                    comments = c.fetchall()
+                    ticket_comments[admin_ticket_id] = comments
+
+                    c.execute("SELECT * FROM admin_replies WHERE comment_id = ? AND user_email = ?", (admin_ticket_id, mentor_email,))
+                    commentsRply = c.fetchall()
+                    ticket_comments_rply[admin_ticket_id] = commentsRply
             except sqlite3.OperationalError:
                 # Handle the case where the table doesn't exist
                 print(f"Table {admin_email_table} does not exist. Skipping admin tickets.")
@@ -368,7 +512,11 @@ def mentor():
                            tickets=tickets,
                            projects_all=projects_dict,
                            current_admin_tickets=current_admin_tickets,
-                           closed_admin_tickets=closed_admin_tickets)
+                           closed_admin_tickets=closed_admin_tickets,
+                           ticket_comments=ticket_comments,
+                           user_ticket_comments=user_ticket_comments,
+                           ticket_comments_rply=ticket_comments_rply,
+                           user_ticket_comments_rply=user_ticket_comments_rply)
 
 @app.route('/create_project', methods=['POST'])
 def create_project():
@@ -736,7 +884,7 @@ def adminlogin():
     if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
         session['admin'] = True  
         flash("Admin login successful!", "success")
-        return redirect(url_for('admin'))  # Redirect to the admin page
+        return redirect(url_for('admin'))
     else:
         flash("Invalid email or password. Please try again.", "error")
         return redirect(url_for('admin_login_page')) 
@@ -747,6 +895,7 @@ def admin():
     if 'admin' not in session:
         flash("You must be logged in as an admin to view this page.", "error")
         return redirect(url_for('admin_login_page'))
+
     close_expired_tickets()
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
@@ -770,11 +919,22 @@ def admin():
     """, (str(selected_year), f'{selected_month:02}'))
     attendance_records = c.fetchall()
 
+    # Fetch all projects
+    c.execute("SELECT id, project_info FROM projects")
+    projects = c.fetchall()
+
+    # Filter projects to ensure unique project_info
+    filtered_projects = {project_info: (project_id, project_info) for project_id, project_info in projects}
+
     # Prepare a dictionary to hold user ticket information grouped by project_info
     user_tickets = {}
     user_updates = {}
     admin_user_tickets = {}
     admin_user_updates = {}
+    ticket_comments = {}
+    ticket_comments_rply = {}
+    user_ticket_comments = {}
+    user_ticket_comments_rply = {}
 
     # Prepare a dictionary to hold team members by team name
     teams = {}
@@ -786,7 +946,7 @@ def admin():
         # Fetch tickets for each user
         c.execute(f"SELECT * FROM {user_email_table}")
         tickets = c.fetchall()
-        
+
         # Group tickets by project_info
         project_tickets = {}
         for ticket in tickets:
@@ -794,7 +954,16 @@ def admin():
             if project_info not in project_tickets:
                 project_tickets[project_info] = []
             project_tickets[project_info].append(ticket)
-        
+
+            user_ticket_id = ticket[0] 
+            c.execute("SELECT * FROM user_comments WHERE ticket_id = ?", (user_ticket_id,))
+            user_comments = c.fetchall()
+            user_ticket_comments[user_ticket_id] = user_comments
+
+            c.execute("SELECT * FROM user_replies WHERE comment_id = ?", (user_ticket_id,))
+            usercommentsRply = c.fetchall()
+            user_ticket_comments_rply[user_ticket_id] = usercommentsRply
+
         # Store the grouped tickets by project under each user
         user_tickets[user_email] = project_tickets
 
@@ -805,7 +974,7 @@ def admin():
             ticket_id = ticket[0]
             c.execute(f"SELECT * FROM {user_updates_table} WHERE ticket_id = ?", (ticket_id,))
             updates[ticket_id] = c.fetchall()
-        
+
         user_updates[user_email] = updates
 
         # Fetch admin tickets
@@ -819,10 +988,10 @@ def admin():
                 if project_info not in admin_project_tickets:
                     admin_project_tickets[project_info] = []
                 admin_project_tickets[project_info].append(ticket)
-            
+
             # Store the grouped tickets by project under each user
             admin_user_tickets[user_email] = admin_project_tickets
-            
+
             # Fetch daily updates for admin tickets
             user_admin_updates_table = f'admin_daily_updates_{user_email.replace("@", "_").replace(".", "_")}'
             admin_updates = {}
@@ -830,18 +999,25 @@ def admin():
                 ticket_id = ticket[0]
                 c.execute(f"SELECT * FROM {user_admin_updates_table} WHERE ticket_id = ?", (ticket_id,))
                 admin_updates[ticket_id] = c.fetchall()
-            
+
+                c.execute("SELECT * FROM admin_comments WHERE ticket_id = ? AND user_email = ?", (ticket_id, user_email,))
+                comments = c.fetchall()
+                ticket_comments[ticket_id] = comments
+
+                c.execute("SELECT * FROM admin_replies WHERE comment_id = ? AND user_email = ?", (ticket_id, user_email))
+                commentsRply = c.fetchall()
+                ticket_comments_rply[ticket_id] = commentsRply
+
             admin_user_updates[user_email] = admin_updates
-        
+
         except sqlite3.OperationalError:
             print(f"Table {admin_email_table} does not exist. Skipping admin tickets.")
 
-        team_name = user[4]
         # Group users by team for attendance
         team_name = user[4]  # Assuming team_name is the fifth column
         if team_name not in teams:
             teams[team_name] = {'mentor': [], 'members': []}
-        
+
         if user[5] == 'mentor':
             teams[team_name]['mentor'].append(user)
         else:
@@ -864,17 +1040,24 @@ def admin():
 
     conn.close()
 
-    return render_template('admin.html', 
-                           users=users, 
-                           user_tickets=user_tickets, 
-                           user_updates=user_updates, 
-                           admin_user_tickets=admin_user_tickets, 
-                           admin_user_updates=admin_user_updates, 
-                           attendance_records=attendance_records, 
-                           teams=teams, 
-                           selected_month=selected_month, 
-                           selected_year=selected_year,
-                           admin_tickets=admin_tickets)
+    return render_template(
+        'admin.html',
+        users=users,
+        user_tickets=user_tickets,
+        user_updates=user_updates,
+        admin_user_tickets=admin_user_tickets,
+        admin_user_updates=admin_user_updates,
+        attendance_records=attendance_records,
+        teams=teams,
+        selected_month=selected_month,
+        selected_year=selected_year,
+        admin_tickets=admin_tickets,
+        ticket_comments=ticket_comments,
+        ticket_comments_rply=ticket_comments_rply,
+        user_ticket_comments=user_ticket_comments,
+        user_ticket_comments_rply=user_ticket_comments_rply,
+        projects=filtered_projects.values()  # Pass filtered projects only
+    )
 
 @app.route('/admin_ticket_updates_display_new/<int:ticket_id>/<string:user_email>')
 def admin_ticket_updates_display_new(ticket_id, user_email):
@@ -915,6 +1098,25 @@ def admin_ticket_updates_display_new(ticket_id, user_email):
         'ticket': ticket,
         'daily_updates': daily_updates
     })
+
+@app.route('/get_updates_user/<int:ticket_id>/<string:user_email>')
+def get_updates_user(ticket_id, user_email):
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row  # Enable row factory to access columns by name
+    c = conn.cursor()
+    
+    user_updates_table = f'daily_updates_{user_email.replace("@", "_").replace(".", "_")}'
+    c.execute(f"""
+        SELECT * FROM {user_updates_table}
+        WHERE ticket_id = ?
+        ORDER BY update_date ASC
+    """, (ticket_id,))
+    
+    updates = c.fetchall()  # This will now return a list of Row objects
+    conn.close()
+    
+    # Convert Row objects to dictionaries
+    return jsonify([dict(update) for update in updates])
 
 @app.route('/get_updates/<int:ticket_id>/<string:user_email>')
 def get_updates(ticket_id, user_email):
@@ -978,7 +1180,10 @@ def admin_project_details(project_info, team_name, member_email):
         AND team_name = ?
     """, (project_info, team_name))
     project = c.fetchone()
-    
+
+    user_ticket_comments = {}
+    user_ticket_comments_rply = {}
+
     # Get the user-specific tables for tickets and daily updates
     user_email_table = f'tickets_{member_email.replace("@", "_").replace(".", "_")}'
     user_updates_table = f'daily_updates_{member_email.replace("@", "_").replace(".", "_")}'
@@ -1001,6 +1206,15 @@ def admin_project_details(project_info, team_name, member_email):
         """, (ticket[0],))
         ticket_updates[ticket[0]] = c.fetchall()
     
+        user_ticket_id = ticket[0] 
+        c.execute("SELECT * FROM user_comments WHERE ticket_id = ?", (user_ticket_id,))
+        user_comments = c.fetchall()
+        user_ticket_comments[user_ticket_id] = user_comments
+
+        c.execute("SELECT * FROM user_replies WHERE comment_id = ?", (user_ticket_id,))
+        usercommentsRply = c.fetchall()
+        user_ticket_comments_rply[user_ticket_id] = usercommentsRply
+
     # Fetch assigned members for the project
     c.execute("""
         SELECT DISTINCT s.name, s.email 
@@ -1026,7 +1240,9 @@ def admin_project_details(project_info, team_name, member_email):
                          member_email=member_email,
                          team_member_names=member_names,
                          team_member_emails=member_emails,
-                         project_creation_date=project_creation_date)
+                         project_creation_date=project_creation_date,
+                         user_ticket_comments=user_ticket_comments,
+                         user_ticket_comments_rply=user_ticket_comments_rply)
 
 @app.route('/admin/attendance', methods=['GET'])
 def fetch_attendance():
@@ -1057,6 +1273,185 @@ def fetch_attendance():
 
     conn.close()
     return jsonify(attendance_list)
+
+from fpdf import FPDF
+
+@app.route('/download_project/<int:project_id>')
+def download_project(project_id):
+    if 'admin' not in session:
+        flash("You must be logged in as an admin to perform this action.", "error")
+        return redirect(url_for('admin_login_page'))
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+
+    # Fetch project details
+    c.execute("""
+        SELECT project_info, description, start_date, end_date, status
+        FROM projects
+        WHERE id = ?
+    """, (project_id,))
+    project = c.fetchone()
+
+    if not project:
+        flash("Project not found.", "error")
+        return redirect(url_for('admin'))
+
+    project_info, description, start_date, end_date, status = project
+
+    # Fetch all team members related to the project
+    c.execute("""
+        SELECT DISTINCT s.name, s.email
+        FROM signup s
+        JOIN projects p ON s.email = p.team_member_email
+        WHERE p.project_info = ?
+    """, (project_info,))
+    team_members = c.fetchall()
+
+    # Prepare the PDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    # Project Summary
+    pdf.cell(200, 10, txt="Project Details", ln=True, align='C')
+    pdf.ln(10)
+    pdf.cell(200, 10, txt=f"Project Name: {project_info}", ln=True)
+    pdf.cell(200, 10, txt=f"Description: {description}", ln=True)
+    # pdf.cell(200, 10, txt=f"Start Date: {start_date}", ln=True)
+    # pdf.cell(200, 10, txt=f"End Date: {end_date}", ln=True)
+    pdf.cell(200, 10, txt=f"Status: {status}", ln=True)
+    pdf.ln(10)
+
+    # Add Team Member and Ticket Details
+    for name, email in team_members:
+        pdf.cell(200, 10, txt=f"Team Member: {name} ({email})", ln=True)
+
+        # Tickets Table Name
+        tickets_table = f"tickets_{email.replace('@', '_').replace('.', '_')}"
+        updates_table = f"daily_updates_{email.replace('@', '_').replace('.', '_')}"
+
+        try:
+            # Fetch Tickets for the Current Member
+            c.execute(f"SELECT id, description, start_date, expected_date, status FROM {tickets_table} WHERE project_info = ?", (project_info,))
+            tickets = c.fetchall()
+
+            if tickets:
+                for ticket_id, ticket_desc, ticket_start, ticket_expected, ticket_status in tickets:
+                    pdf.cell(200, 10, txt=f"  Ticket ID: {ticket_id}", ln=True)
+                    pdf.cell(200, 10, txt=f"    Description: {ticket_desc}", ln=True)
+                    pdf.cell(200, 10, txt=f"    Start Date: {ticket_start}", ln=True)
+                    pdf.cell(200, 10, txt=f"    Expected End Date: {ticket_expected}", ln=True)
+                    pdf.cell(200, 10, txt=f"    Status: {ticket_status}", ln=True)
+
+                    # Fetch Daily Updates for the Ticket
+                    try:
+                        c.execute(f"SELECT update_date, daily_description, stage, state FROM {updates_table} WHERE ticket_id = ?", (ticket_id,))
+                        updates = c.fetchall()
+
+                        if updates:
+                            pdf.cell(200, 10, txt="    Updates:", ln=True)
+                            for update_date, update_desc, stage, state in updates:
+                                pdf.cell(200, 10, txt=f"      {update_date}: {update_desc} (Stage: {stage}, State: {state})", ln=True)
+                        else:
+                            pdf.cell(200, 10, txt="    No updates for this ticket.", ln=True)
+                    except sqlite3.OperationalError:
+                        pdf.cell(200, 10, txt="    Updates table not found for this user.", ln=True)
+
+            else:
+                pdf.cell(200, 10, txt="  No tickets found for this member.", ln=True)
+        except sqlite3.OperationalError:
+            pdf.cell(200, 10, txt="  Tickets table not found for this user.", ln=True)
+
+        pdf.ln(5)
+
+    conn.close()
+
+    # Save and Serve the PDF
+    pdf_path = f"{project_info}_details.pdf"
+    pdf.output(pdf_path)
+
+    return send_file(pdf_path, as_attachment=True)
+
+@app.route('/admin/download_attendance/<string:report_type>', methods=['GET'])
+def download_attendance(report_type):
+    if 'admin' not in session:
+        return "Unauthorized", 403
+
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+
+    # Prepare the SQL query based on the report type
+    if report_type == 'daily':
+        date = request.args.get('date')  # Expecting a date in YYYY-MM-DD format
+        query = "SELECT * FROM attendance WHERE date = ?"
+        params = (date,)
+        filename = f"attendance_{date}.csv"
+
+    elif report_type == 'monthly':
+        query = """
+            SELECT * FROM attendance 
+            WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?
+        """
+        params = (str(year), f'{month:02}')
+        filename = f"attendance_{year}_{month}.csv"
+
+    elif report_type == 'yearly':
+        # Create a temporary directory to store monthly CSV files
+        temp_dir = 'temp_attendance_files'
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # Loop through each month and create a CSV file
+        for m in range(1, 13):
+            query = """
+                SELECT * FROM attendance 
+                WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?
+            """
+            c.execute(query, (str(year), f'{m:02}'))
+            records = c.fetchall()
+
+            # Create a CSV file for the month
+            month_filename = f"{temp_dir}/attendance_{year}_{m}.csv"
+            with open(month_filename, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Email', 'Date', 'Login Times', 'Logout Times', 'Duration Worked'])
+                for record in records:
+                    formatted_date = f'"{record[4]}"'  # Assuming record[4] is the date
+                    writer.writerow([record[1], formatted_date, record[2], record[3], record[5]])
+
+        # Create a zip file containing all monthly CSV files
+        zip_filename = f"attendance_{year}.zip"
+        with zipfile.ZipFile(zip_filename, 'w') as zipf:
+            for m in range(1, 13):
+                zipf.write(f"{temp_dir}/attendance_{year}_{m}.csv", arcname=f"attendance_{year}_{m}.csv")
+
+        # Clean up temporary files
+        for m in range(1, 13):
+            os.remove(f"{temp_dir}/attendance_{year}_{m}.csv")
+        os.rmdir(temp_dir)
+
+        # Send the zip file to the user
+        return send_file(zip_filename, as_attachment=True)
+
+    else:
+        return "Invalid report type", 400
+
+    # Execute the query for daily and monthly reports
+    c.execute(query, params)
+    records = c.fetchall()
+    conn.close()
+
+    # Create a CSV response
+    def generate():
+        yield ','.join(['Email', 'Date', 'Login Times', 'Logout Times', 'Duration Worked']) + '\n'
+        for record in records:
+            formatted_date = f'"{record[4]}"'  # Assuming record[4] is the date
+            yield ','.join([record[1], formatted_date, record[2], record[3], record[5]]) + '\n'
+
+    return Response(generate(), mimetype='text/csv', headers={"Content-Disposition": f"attachment;filename={filename}"})
 
 def get_db_connection():
     conn = sqlite3.connect('database.db')
@@ -1096,6 +1491,8 @@ def home():
     # Separate current and closed tickets
     current_tickets = []
     closed_tickets = {}
+    user_ticket_comments = {}
+    user_ticket_comments_rply = {}
     today_date = datetime.now()
 
     for ticket in tickets:
@@ -1113,6 +1510,15 @@ def home():
         #     if project_info not in closed_tickets:
         #         closed_tickets[project_info] = []
         #     closed_tickets[project_info].append(ticket)
+                        
+        user_ticket_id = ticket[0] 
+        c.execute("SELECT * FROM user_comments WHERE ticket_id = ?", (user_ticket_id, ))
+        user_comments = c.fetchall()
+        user_ticket_comments[user_ticket_id] = user_comments
+
+        c.execute("SELECT * FROM user_replies WHERE comment_id = ?", (user_ticket_id,))
+        usercommentsRply = c.fetchall()
+        user_ticket_comments_rply[user_ticket_id] = usercommentsRply
 
     # Fetch stages for closed tickets
     stages_for_closed_tickets = {}
@@ -1127,6 +1533,8 @@ def home():
     # Fetch current and closed admin tickets
     current_admin_tickets = []
     closed_admin_tickets = {}
+    ticket_comments = {}
+    ticket_comments_rply = {}
     
     try:
         c.execute(f"SELECT * FROM {admin_email_table}")
@@ -1141,6 +1549,16 @@ def home():
                 if project_info not in closed_admin_tickets:
                     closed_admin_tickets[project_info] = []
                 closed_admin_tickets[project_info].append(ticket)
+            
+            ticket_id = ticket[0]
+            c.execute("SELECT * FROM admin_comments WHERE ticket_id = ? AND user_email = ?", (ticket_id, user_email,))
+            comments = c.fetchall()
+            ticket_comments[ticket_id] = comments
+
+            c.execute("SELECT * FROM admin_replies WHERE comment_id = ? AND user_email = ?", (ticket_id, user_email,))
+            commentsRply = c.fetchall()
+            ticket_comments_rply[ticket_id] = commentsRply
+
     except sqlite3.OperationalError:
         print(f"Table {admin_email_table} does not exist. Skipping admin tickets.")
  
@@ -1152,7 +1570,11 @@ def home():
                          stages_for_closed_tickets=stages_for_closed_tickets,
                          current_admin_tickets=current_admin_tickets,
                          closed_admin_tickets=closed_admin_tickets,
-                         assigned_projects=assigned_projects)
+                         assigned_projects=assigned_projects,
+                         ticket_comments=ticket_comments,
+                         ticket_comments_rply=ticket_comments_rply,
+                         user_ticket_comments=user_ticket_comments,
+                         user_ticket_comments_rply=user_ticket_comments_rply)
 
 @app.route('/researchers')
 def researchers():
@@ -1170,43 +1592,9 @@ def researchers():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
 
-    # Fetch only active assigned projects for the logged-in user
-    # c.execute("""
-    #     SELECT * FROM projects 
-    #     WHERE team_member_email = ? 
-    #     AND status = 'active'  
-    #     ORDER BY start_date DESC
-    # """, (user_email,))
-    # assigned_projects = c.fetchall()
-
     # Fetch tickets for the logged-in user from their specific table
     c.execute(f"SELECT * FROM {user_email_table}")
     tickets = c.fetchall()
-
-    # Separate current and closed tickets
-    # current_tickets = []
-    # closed_tickets = {}
-    # today_date = datetime.now()
-
-    # for ticket in tickets:
-    #     closed_date = ticket[8]
-    #     if closed_date is None:
-    #         current_tickets.append(ticket)
-    #     elif closed_date is not None:
-    #         project_info = ticket[1]
-    #         if project_info not in closed_tickets:
-    #             closed_tickets[project_info] = []
-    #         closed_tickets[project_info].append(ticket)
-
-    # Fetch stages for closed tickets
-    # stages_for_closed_tickets = {}
-    # for project, tickets in closed_tickets.items():
-    #     for ticket in tickets:
-    #         with get_db_connection() as conn:
-    #             c = conn.cursor()
-    #             c.execute(f"SELECT DISTINCT stage FROM {user_updates_table} WHERE ticket_id = ?", (ticket[0],))
-    #             stages = c.fetchall()
-    #             stages_for_closed_tickets[ticket[0]] = [stage[0] for stage in stages]
 
     # Fetch current and closed admin tickets
     current_admin_tickets = []
@@ -1266,11 +1654,21 @@ def create_ticket():
         description = request.form['description']
         start_date = request.form['start_date']
         expected_date = request.form['expected_date']
-        assigned_to = request.form['assigned_to']  # Get assigned team member
+        assigned_to = request.form['assigned_to']  
         memEmail = request.form['memEmail']
+        uploaded_images = request.files.getlist('images')  
+        image_data_list = []
 
-        start_time = "09:00:00"  # Fixed start time
-        end_time = "23:59:00"     # Fixed end time
+        for image in uploaded_images:
+            if image and allowed_file(image.filename):
+                image_data = image.read()
+                image_data_list.append(image_data)
+
+        # Concatenate images into a single BLOB
+        concatenated_images = b''.join(image_data_list) 
+
+        start_time = "09:00:00"  
+        end_time = "23:59:00"
 
         # Combine date and time
         start_datetime = f"{start_date} {start_time}"
@@ -1290,10 +1688,17 @@ def create_ticket():
         #     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         # """, (project_info, module_info, description, start_date, expected_date, ticket_creation_time_str, assigned_to, member_email))
         
-        c.execute(f"""
-            INSERT INTO {member_email_table} (project_info, module_info, description, start_date, expected_date, ticket_creation_time, member, team_member_email)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (project_info, module_info, description, start_datetime, end_datetime, ticket_creation_time_str, assigned_to, member_email))
+        if image_data_list:
+            c.execute(f"""
+                INSERT INTO {member_email_table}
+                (project_info, module_info, description, start_date, expected_date, ticket_creation_time, member, team_member_email, ticket_images)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (project_info, module_info, description, start_datetime, end_datetime, ticket_creation_time_str, assigned_to, memEmail, sqlite3.Binary(concatenated_images)))
+        else:
+            c.execute(f"""
+                INSERT INTO {member_email_table} (project_info, module_info, description, start_date, expected_date, ticket_creation_time, member, team_member_email)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (project_info, module_info, description, start_datetime, end_datetime, ticket_creation_time_str, assigned_to, member_email))
 
         conn.commit()
         conn.close()
@@ -1407,14 +1812,32 @@ def ticket_details(ticket_id):
                     daily_description = request.form['daily_description']
                     stage = request.form['stage']
                     state = request.form['state']
+                    uploaded_images = request.files.getlist('images')  
+                    image_data_list = []
+
+                    for image in uploaded_images:
+                        if image and allowed_file(image.filename):
+                            image_data = image.read()
+                            image_data_list.append(image_data)
+
+                    # Concatenate images into a single BLOB
+                    concatenated_images = b''.join(image_data_list) 
                     update_date = today_date
 
-                    c.execute(f"""
-                        INSERT INTO {user_updates_table} (ticket_id, update_date, daily_description, stage, state)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (ticket_id, update_date, daily_description, stage, state))
-                    conn.commit()
-                    flash(f"Daily update for {update_date} added successfully.", "success")
+                    if image_data_list:
+                        c.execute(f"""
+                            INSERT INTO {user_updates_table} (ticket_id, update_date, daily_description, stage, state, update_images)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (ticket_id, update_date, daily_description, stage, state, sqlite3.Binary(concatenated_images)))
+                        conn.commit()
+                        flash(f"Daily update for {update_date} added successfully.", "success")
+                    else:
+                        c.execute(f"""
+                            INSERT INTO {user_updates_table} (ticket_id, update_date, daily_description, stage, state)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (ticket_id, update_date, daily_description, stage, state))
+                        conn.commit()
+                        flash(f"Daily update for {update_date} added successfully.", "success")
                 else:
                     flash(f"An update for {today_date} already exists.", "error")
 
@@ -1423,6 +1846,11 @@ def ticket_details(ticket_id):
         SELECT * FROM {user_updates_table} WHERE ticket_id = ? ORDER BY update_date ASC
     """, (ticket_id,))
     daily_updates = c.fetchall()
+    print("Base64 Encoded Image Data:", update[6])  
+
+    for update in daily_updates:
+        if update[6]: 
+            update[6] = base64.b64encode(update[6]).decode('utf-8')
 
     conn.close()
 
@@ -1470,14 +1898,32 @@ def admin_ticket_details(ticket_id):
                     daily_description = request.form['daily_description']
                     stage = request.form['stage']
                     state = request.form['state']
+                    uploaded_images = request.files.getlist('images')  
+                    image_data_list = []
+
+                    for image in uploaded_images:
+                        if image and allowed_file(image.filename):
+                            image_data = image.read()
+                            image_data_list.append(image_data)
+
+                    # Concatenate images into a single BLOB
+                    concatenated_images = b''.join(image_data_list) 
                     update_date = today_date
 
-                    c.execute(f"""
-                        INSERT INTO {user_updates_table} (ticket_id, update_date, daily_description, stage, state)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (ticket_id, update_date, daily_description, stage, state))
-                    conn.commit()
-                    flash(f"Daily update for {update_date} added successfully.", "success")
+                    if image_data_list:
+                        c.execute(f"""
+                            INSERT INTO {user_updates_table} (ticket_id, update_date, daily_description, stage, state, updates_images_Ad)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (ticket_id, update_date, daily_description, stage, state, sqlite3.Binary(concatenated_images)))
+                        conn.commit()
+                        flash(f"Daily update for {update_date} added successfully.", "success")
+                    else:
+                        c.execute(f"""
+                            INSERT INTO {user_updates_table} (ticket_id, update_date, daily_description, stage, state)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (ticket_id, update_date, daily_description, stage, state))
+                        conn.commit()
+                        flash(f"Daily update for {update_date} added successfully.", "success")
                 else:
                     flash(f"An update for {today_date} already exists.", "error")
 
@@ -1486,7 +1932,6 @@ def admin_ticket_details(ticket_id):
         SELECT * FROM {user_updates_table} WHERE ticket_id = ? ORDER BY update_date ASC
     """, (ticket_id,))
     daily_updates = c.fetchall()
-
     conn.close()
 
     source = request.args.get('source', 'home')  # Get the source parameter
@@ -1570,10 +2015,20 @@ def create_ticket_admin():
         description = request.form['description']
         start_date = request.form['start_date']
         end_date = request.form['end_date']
+        uploaded_images = request.files.getlist('images')  
+        image_data_list = []
+
+        for image in uploaded_images:
+            if image and allowed_file(image.filename):
+                image_data = image.read()
+                image_data_list.append(image_data)
+
+        # Concatenate images into a single BLOB
+        concatenated_images = b''.join(image_data_list) 
 
         # Set the fixed times
-        start_time = "09:00:00"  # Fixed start time
-        end_time = "23:59:00"     # Fixed end time
+        start_time = "09:00:00" 
+        end_time = "23:59:00" 
 
         # Combine date and time
         start_datetime = f"{start_date} {start_time}"
@@ -1615,29 +2070,21 @@ def create_ticket_admin():
                 UNIQUE(ticket_id, update_date)
             );
         """)
-
-        # try:
-        #     start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
-        #     expected_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
-
-        #     if expected_date_obj == start_date_obj:
-        #         expected_date_obj = expected_date_obj.replace(hour=23, minute=59, second=59, microsecond=999999)
-        #     elif expected_date_obj < start_date_obj:
-        #         flash("Expected Date must be after the Start Date.", "error")
-        #         return render_template('admin.html')
-
-        # except ValueError:
-        #     flash("Invalid date format. Please use YYYY-MM-DD.", "error")
-        #     return render_template('admin.html')
         
         member_email_table = f'admin_tickets_{mentor_email.replace("@", "_").replace(".", "_")}'
         ticket_creation_time = datetime.now()
         ticket_creation_time_str = ticket_creation_time.strftime('%Y-%m-%d %H:%M')
 
-        c.execute(f"""
-            INSERT INTO {member_email_table} (project_info, description,module_info, start_date, expected_date, ticket_creation_time, team_member_email)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (project_name, description, module_info, start_datetime, end_datetime, ticket_creation_time_str, mentor_email))
+        if image_data_list:
+            c.execute(f"""
+                INSERT INTO {member_email_table} (project_info, description,module_info, start_date, expected_date, ticket_creation_time, team_member_email, ad_ticket_images)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (project_name, description, module_info, start_datetime, end_datetime, ticket_creation_time_str, mentor_email, sqlite3.Binary(concatenated_images)))
+        else:
+            c.execute(f"""
+                INSERT INTO {member_email_table} (project_info, description,module_info, start_date, expected_date, ticket_creation_time, team_member_email)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (project_name, description, module_info, start_datetime, end_datetime, ticket_creation_time_str, mentor_email))
 
         conn.commit()
         conn.close()
@@ -1763,6 +2210,341 @@ def close_expired_tickets():
     conn.commit()
     conn.close()
 
+@app.route('/send_comment/<int:ticket_id>', methods=['POST'])
+def send_comment(ticket_id):
+    if 'admin' not in session:
+        flash("You must be logged in as an admin to send comments.", "error")
+        return redirect(url_for('admin_login_page'))
+
+    comment = request.form['comment']
+    user_email = request.form['user_email'] 
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+
+    c.execute("SELECT role, team_name FROM signup WHERE email = ?", (user_email,))
+    user_info = c.fetchone()
+
+    if user_info:
+        role = user_info[0]
+        team_name = user_info[1]
+        created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Insert the comment into the database
+        c.execute("""
+            INSERT INTO admin_comments(ticket_id, admin_email, user_email, comment, role, team_name,created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (ticket_id, "hemachandran.k@woxsen.edu.in", user_email, comment,role, team_name, created_at))
+
+    conn.commit()
+    conn.close()
+
+    flash("Comment sent successfully!", "success")
+    return redirect(url_for('admin', ticket_id=ticket_id))
+
+@app.route('/send_comment_userAd/<int:ticket_id>', methods=['POST'])
+def send_comment_userAd(ticket_id):
+    if 'admin' not in session:
+        flash("You must be logged in as an admin to view this page.", "error")
+        return redirect(url_for('admin_login_page'))
+
+    comment = request.form['comment']
+    user_email = request.form['user_email'] 
+
+    if not comment or not user_email:
+        flash("Comment or user email is missing.", "error")
+        return jsonify(success=False, message="Comment or user email is missing.")
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+
+    c.execute("SELECT role, team_name FROM signup WHERE email = ?", (user_email,))
+    user_info = c.fetchone()
+
+    if user_info:
+        role = user_info[0]
+        team_name = user_info[1]
+        created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Insert the comment into the database
+        c.execute("""
+            INSERT INTO admin_user_comments(ticket_id, admin_email, user_email, comment, role, team_name, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (ticket_id, "hemachandran.k@woxsen.edu.in", user_email, comment, role, team_name, created_at))
+
+        conn.commit()
+    else:
+        flash("User  information not found.", "error")
+
+    conn.close()
+    flash("Comment sent successfully!", "success")
+    return redirect(url_for('admin', ticket_id=ticket_id))
+
+
+# def send_email_notification(user_email, comment):
+#     msg = MIMEText(f"You have received a new comment from the admin: {comment}")
+#     msg['Subject'] = 'New Comment on Your Ticket'
+#     msg['From'] = 'your_email@example.com'
+#     msg['To'] = user_email
+
+#     with smtplib.SMTP('smtp.example.com', 587) as server:
+#         server.starttls()
+#         server.login('your_email@example.com', 'your_password')
+#         server.send_message(msg)
+
+@app.route('/reply_comment/<int:comment_id>', methods=['POST'])
+def reply_comment(comment_id):
+    if 'email' not in session:
+        flash("You must be logged in to reply to comments.", "error")
+        return redirect(url_for('login'))
+
+    reply = request.form['reply']
+    user_email = session['email']
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+ 
+    c.execute("SELECT role, team_name FROM signup WHERE email = ?", (user_email,))
+    user_info = c.fetchone()
+
+    if user_info:
+        role = user_info[0]
+        team_name = user_info[1]
+        created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # Insert the reply into the database
+        c.execute("""
+            INSERT INTO admin_replies (comment_id, admin_email, user_email, reply, role, team_name, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (comment_id, "hemachandran.k@woxsen.edu.in", user_email, reply, role, team_name, created_at))
+
+        conn.commit()
+
+        flash("Reply sent successfully!", "success")
+
+        if role == 'mentor':
+            return redirect(url_for('mentor'))
+        elif role == 'team_member':
+            return redirect(url_for('home'))
+        elif role == 'researchers':
+            return redirect(url_for('researchers'))
+    else:
+        flash("User  information not found.", "error")
+
+    conn.close()
+    return redirect(url_for('home')) 
+
+@app.route('/send_comment_user/<int:ticket_id>', methods=['POST'])
+def send_comment_user(ticket_id):
+    if 'email' not in session:
+        flash("You must be logged in to view the mentor page.", "error")
+        return redirect(url_for('login'))
+
+    mentor_email = session['email']
+    
+    # Get the JSON data from the request
+    data = request.get_json()
+    comment = data.get('comment')  # Use .get() to avoid KeyError
+    user_email = data.get('user_email')
+
+    if not comment or not user_email:
+        flash("Comment or user email is missing.", "error")
+        return jsonify(success=False, message="Comment or user email is missing.")
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+
+    c.execute("SELECT role, team_name FROM signup WHERE email = ?", (user_email,))
+    user_info = c.fetchone()
+
+    if user_info:
+        role = user_info[0]
+        team_name = user_info[1]
+        # Insert the comment into the database
+        created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        c.execute("""
+            INSERT INTO user_comments(ticket_id, admin_email, user_email, comment, role, team_name, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (ticket_id, mentor_email, user_email, comment, role, team_name, created_at))
+
+        conn.commit()
+        flash("Comment sent successfully!", "success")  # Flash message for successful comment
+    else:
+        flash("User  information not found.", "error")
+
+    conn.close()
+    flash("Comment sent successfully!", "success")
+    return redirect(url_for('mentor', ticket_id=ticket_id))
+
+@app.route('/reply_comment_user/<int:comment_id>', methods=['POST'])
+def reply_comment_user(comment_id):
+    if 'email' not in session:
+        flash("You must be logged in to reply to comments.", "error")
+        return redirect(url_for('login'))
+
+    reply = request.form['reply']
+    user_email = session['email']
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT role, team_name FROM signup WHERE email = ?", (user_email,))
+    user_info = c.fetchone()
+
+    if user_info:
+        role = user_info[0]
+        team_name = user_info[1]
+
+        c.execute("SELECT email FROM signup WHERE team_name = ? AND role = 'mentor'", (team_name,))
+        mentor_info = c.fetchone()
+
+        if mentor_info:
+            mentor_email = mentor_info[0] 
+            created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            c.execute("""
+                INSERT INTO user_replies (comment_id, admin_email, user_email, reply, role, team_name, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (comment_id, mentor_email, user_email, reply, role, team_name, created_at))
+            flash("Reply sent successfully!", "success")
+        else:
+            flash("Mentor not found for this user.", "error")
+    else:
+        flash("User  information not found.", "error")
+
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('home'))  
+
+@app.route('/reply_comment_user_admin/<int:comment_id>', methods=['POST'])
+def reply_comment_user_admin(comment_id):
+    if 'email' not in session:
+        flash("You must be logged in to reply to comments.", "error")
+        return redirect(url_for('login'))
+
+    reply = request.form['reply']
+    user_email = session['email']
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT role, team_name FROM signup WHERE email = ?", (user_email,))
+    user_info = c.fetchone()
+
+    if user_info:
+        role = user_info[0]
+        team_name = user_info[1]
+        created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        c.execute("""
+            INSERT INTO admin_user_replies(comment_id, admin_email, user_email, reply, role, team_name, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (comment_id, "hemachandran.k@woxsen.edu.in", user_email, reply, role, team_name, created_at))
+    conn.commit()
+    conn.close()
+
+    flash("Reply sent successfully!", "success")
+    return redirect(url_for('home'))  
+
+
+@app.route('/get_comments/<int:ticket_id>/<member_email>')
+def get_comments(ticket_id, member_email):
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT * FROM user_comments WHERE ticket_id = ? AND user_email = ?", (ticket_id, member_email,))
+    comments = c.fetchall()
+
+    c.execute("SELECT * FROM user_replies WHERE comment_id = ? AND user_email = ?", (ticket_id, member_email,))
+    replies = c.fetchall()
+
+    combined = []
+    for comment in comments:
+        combined.append({
+            'user': comment[2], 
+            'content': comment[4], 
+            'timestamp': comment[5],  
+            'type': 'comment'
+        })
+    
+    for reply in replies:
+        combined.append({
+            'user': reply[3],  
+            'content': reply[4],  
+            'timestamp': reply[5], 
+            'type': 'reply'
+        })
+
+    combined.sort(key=lambda x: x['timestamp'])
+    
+    conn.close()
+    return jsonify(combined)
+
+@app.route('/get_admin_comments/<int:ticket_id>/<member_email>')
+def get_admin_comments(ticket_id, member_email):
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT * FROM admin_comments WHERE ticket_id = ? AND user_email = ?", (ticket_id, member_email,))
+    comments = c.fetchall()
+
+    c.execute("SELECT * FROM admin_replies WHERE comment_id = ? AND user_email = ?", (ticket_id, member_email,))
+    replies = c.fetchall()
+
+    combined = []
+    for comment in comments:
+        combined.append({
+            'user': comment[2],  
+            'content': comment[4], 
+            'timestamp': comment[5],  
+            'type': 'comment'
+        })
+    
+    for reply in replies:
+        combined.append({
+            'user': reply[3],  
+            'content': reply[4],
+            'timestamp': reply[5],  
+            'type': 'reply'
+        })
+
+    combined.sort(key=lambda x: x['timestamp'])
+    
+    conn.close()
+    return jsonify(combined)
+
+
+@app.route('/get_admin_user_comments/<int:ticket_id>/<member_email>')
+def get_admin_user_comments(ticket_id, member_email):
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT * FROM admin_user_comments WHERE ticket_id = ? AND user_email = ?", (ticket_id, member_email,))
+    comments = c.fetchall()
+
+    c.execute("SELECT * FROM admin_user_replies WHERE comment_id = ? AND user_email = ?", (ticket_id, member_email,))
+    replies = c.fetchall()
+
+    combined = []
+    for comment in comments:
+        combined.append({
+            'user': comment[2],  
+            'content': comment[4], 
+            'timestamp': comment[5],  
+            'type': 'comment'
+        })
+    
+    for reply in replies:
+        combined.append({
+            'user': reply[3],  
+            'content': reply[4],
+            'timestamp': reply[5],  
+            'type': 'reply'
+        })
+
+    combined.sort(key=lambda x: x['timestamp'])
+    
+    conn.close()
+    return jsonify(combined)
+    
 # Main route (home)
 @app.route('/')
 def index():

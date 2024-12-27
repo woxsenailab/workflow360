@@ -228,8 +228,8 @@
             margin: 15% auto;
             padding: 20px;
             border: 1px solid #888;
-            width: 80%;
-            max-width: 600px;
+            width: 90%;
+            max-width: 800px;
             border-radius: 0.5rem;
             box-shadow: var(--shadow);
         }
@@ -429,6 +429,68 @@
         .flash-messages li {
             margin-bottom: 5px;
         }
+
+        .comment {
+            background-color: #f1f5f9;
+            border-left: 4px solid var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            transition: background-color 0.3s ease;
+        }
+
+        .comment:hover {
+            background-color: #e2e8f0;
+        }
+
+        .comment strong {
+            color: var(--primary-color);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .reply {
+            background-color: #e2f8e2;
+            border-left: 4px solid var(--secondary-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 5px 0;
+        }
+
+        .reply strong {
+            color: var(--secondary-color);
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .reply textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-top: 5px;
+            resize: vertical;
+        }
+
+        .reply textarea:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            outline: none;
+        }
+
+        .reply input[type="submit"] {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .reply input[type="submit"]:hover {
+            background-color: #23cf57;
+        }
     </style>
 </head>
 
@@ -492,11 +554,27 @@
                     </div>
                 </div>
                 <div class="ticket-actions">
-                    <a href="{{ url_for('admin_ticket_details', ticket_id=ticket[0], source='mentor') }}" class="btn btn-update">Add Daily Update</a>
+                    <a href="{{ url_for('admin_ticket_details', ticket_id=ticket[0], source='mentor') }}"
+                        class="btn btn-update">Add Daily Update</a>
                     <form action="{{ url_for('admin_close_ticket', ticket_id=ticket[0], source='mentor') }}"
                         method="POST" style="display:inline;">
                         <button type="submit" class="btn btn-close">Close Ticket</button>
                     </form>
+                </div>
+                <h4>Comments:</h4>
+                <div class="comments">
+                    <button onclick="showAdminComments('{{ ticket[0] }}', `{{ session['email'] }}`)">View Admin
+                        Comments</button>
+                        <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                            <!-- Admin comments will be populated here -->
+                        </div>
+                        <button onclick="showReplyForm('{{ ticket[0] }}')">Reply</button>
+                        <div id="replyForm_{{ ticket[0] }}" class="reply-form" style="display:none;">
+                            <form method="POST" action="{{ url_for('reply_comment', comment_id=ticket[0]) }}">
+                                <textarea name="reply" required placeholder="Type your reply here..."></textarea>
+                                <input type="submit" value="Send Reply">
+                            </form>
+                        </div>
                 </div>
             </div>
             {% endfor %}
@@ -516,16 +594,22 @@
                     <div class="ticket-info">
                         <strong>Admin Created Ticket #{{ ticket[0] }}</strong>
                         <p><strong>Description:</strong> {{ ticket[3] }}</p>
-                                <div class="ticket-details">
-                                    <p><strong>Module:</strong> {{ ticket[2] }}</p>
-                                    <p><strong>Ticket Created On:</strong> {{ ticket[6] }}</p>
-                                    <p><strong>Ticket Started:</strong> {{ ticket[4] }}</p>
-                                    <p><strong>Ticket Expected To End:</strong> {{ ticket[5] }}</p>
-                                    <p><strong>Ticket Closed:</strong> {{ ticket[7] }}</p>
-                                </div><br>
+                        <div class="ticket-details">
+                            <p><strong>Module:</strong> {{ ticket[2] }}</p>
+                            <p><strong>Ticket Created On:</strong> {{ ticket[6] }}</p>
+                            <p><strong>Ticket Started:</strong> {{ ticket[4] }}</p>
+                            <p><strong>Ticket Expected To End:</strong> {{ ticket[5] }}</p>
+                            <p><strong>Ticket Closed:</strong> {{ ticket[7] }}</p>
+                        </div><br>
                         <a href="{{ url_for('admin_ticket_updates', ticket_id=ticket[0], source='mentor') }}"
                             class="btn btn-update">View Updates</a>
                     </div>
+                    <h4>Comments:</h4>
+                    <button onclick="showAdminComments('{{ ticket[0] }}', `{{ session['email'] }}`)">View Admin
+                        Comments</button>
+                        <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                            <!-- Admin comments will be populated here -->
+                        </div>
                     {% endfor %}
                 </div>
                 {% endfor %}
@@ -720,6 +804,19 @@
                     <p><strong>Expected End Date:</strong> ${ticket.expected}</p>
                     <p><strong>Status:</strong> ${ticket.status}</p>
                     <p><strong>Closed Date:</strong> ${ticket.closed ? ticket.closed : 'Not Closed Yet'}</p>
+                    <button onclick="showDailyUpdates(${ticket.id}, '${memberEmail}')">View Daily Updates</button>
+                    <div id="dailyUpdates_${ticket.id}" style="display: none;">
+                        <!-- Daily updates will be populated here -->
+                    </div>
+                    <button onclick="showCommentForm(${ticket.id}, '${memberEmail}')">Comment</button>
+                    <button onclick="showComments(${ticket.id}, '${memberEmail}')">View Comments</button>
+                    <div id="commentForm_${ticket.id}" style="display: none;">
+                        <textarea id="commentInput_${ticket.id}" placeholder="Type your comment here..."></textarea>
+                        <button onclick="sendComment(${ticket.id}, '${memberEmail}')">Send Comment</button>
+                    </div>
+                    <div id="comments_${ticket.id}" style="display: none;">
+                        <!-- Comments and replies will be populated here -->
+                    </div>
                 </div>
             `).join('');
                     document.getElementById('ticketModal').style.display = 'block';
@@ -728,6 +825,117 @@
 
         function closeModal() {
             document.getElementById('ticketModal').style.display = 'none';
+        }
+
+        function showDailyUpdates(ticketId, memberEmail) {
+            const updatesDiv = document.getElementById(`dailyUpdates_${ticketId}`);
+
+            // Toggle visibility of the updatesDiv
+            if (updatesDiv.style.display === 'block') {
+                updatesDiv.style.display = 'none'; // Hide if already visible
+                return;
+            }
+
+            // Fetch daily updates for the ticket
+            fetch(`/get_updates_user/${ticketId}/${memberEmail}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    updatesDiv.innerHTML = ''; // Clear previous updates
+                    if (data.length === 0) {
+                        updatesDiv.innerHTML = '<p>No updates available for this ticket.</p>';
+                    } else {
+                        data.forEach(update => {
+                            updatesDiv.innerHTML += `
+                        <div>
+                            <strong>${update.update_date}:</strong>
+                            <p>${update.daily_description} (Stage: ${update.stage}, State: ${update.state})</p>
+                        </div>
+                    `;
+                        });
+                    }
+                    updatesDiv.style.display = 'block'; // Show the updates
+                })
+                .catch(error => {
+                    console.error('Error fetching updates:', error);
+                    updatesDiv.innerHTML = '<p>Error fetching updates. Please try again later.</p>';
+                    updatesDiv.style.display = 'block'; // Show the error message
+                });
+        }
+
+        function showCommentForm(ticketId, memberEmail) {
+            const commentForm = document.getElementById(`commentForm_${ticketId}`);
+            commentForm.style.display = commentForm.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function sendComment(ticketId, memberEmail) {
+            const commentInput = document.getElementById(`commentInput_${ticketId}`);
+            const comment = commentInput.value;
+
+            if (!comment) {
+                alert("Please enter a comment.");
+                return;
+            }
+
+            fetch(`/send_comment_user/${ticketId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ comment: comment, user_email: memberEmail }) // Ensure user_email is included
+            })
+                .then(response => {
+                    if (response.redirected) {
+                        // Handle redirection if the user is not logged in
+                        window.location.href = response.url; // Redirect to login page
+                    } else {
+                        return response.json();
+                    }
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        // Clear the input and refresh comments
+                        commentInput.value = '';
+                    } else {
+                        alert("Error sending comment: " + (data.message || "Unknown error"));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        function showComments(ticketId, memberEmail) {
+            const commentsDiv = document.getElementById(`comments_${ticketId}`);
+
+            if (commentsDiv.style.display === 'block') {
+                commentsDiv.style.display = 'none';
+            } else {
+                fetch(`/get_comments/${ticketId}/${memberEmail}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        commentsDiv.innerHTML = ''; // Clear previous comments
+
+                        data.forEach(item => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
+                            <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                            <p>${item.content}</p>
+                        `;
+                            commentsDiv.appendChild(commentElement);
+                        });
+
+                        commentsDiv.style.display = 'block'; // Show the comments
+                    })
+                    .catch(error => {
+                        console.error('Error fetching comments:', error);
+                    });
+            }
         }
     </script>
 
@@ -741,6 +949,47 @@
                 }, 4000); // 4000 milliseconds = 4 seconds
             });
         });
+
+        function showReplyForm(commentId) {
+            const replyForm = document.getElementById(`replyForm_${commentId}`);
+            if (replyForm) {
+                replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+
+        function showAdminComments(ticketId, memberEmail) {
+    const commentsDiv = document.getElementById(`adminComments_${ticketId}_${memberEmail}`);
+
+    // Check if the commentsDiv is currently displayed
+    if (commentsDiv.style.display === 'block') {
+        // If it is displayed, hide it
+        commentsDiv.style.display = 'none';
+    } else {
+        // If it is not displayed, fetch and show comments
+        fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
+            .then(response => response.json())
+            .then(data => {
+                commentsDiv.innerHTML = ''; // Clear previous comments
+
+                // Render comments and replies
+                data.forEach(item => {
+                    const commentElement = document.createElement('div');
+                    commentElement.classList.add('comment');
+                    commentElement.innerHTML = `
+                        <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                        <p>${item.content}</p>
+                    `;
+                    commentsDiv.appendChild(commentElement);
+                });
+
+                commentsDiv.style.display = 'block'; // Show the comments
+            })
+            .catch(error => {
+                console.error('Error fetching admin comments:', error);
+            });
+    }
+}
     </script>
 </body>
 
