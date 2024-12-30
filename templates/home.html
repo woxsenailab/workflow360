@@ -405,7 +405,6 @@
                     </form>
                 </div>
                 <h4>Comments:</h4>
-                {% if user_ticket_comments[ticket[0]] %}
                 <div class="comments">
                     <div>
                         <button class="btn-comment" onclick="showComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View
@@ -437,9 +436,6 @@
                         </div>
                     </div>
                 </div>
-                {% else %}
-                <p>No comments available for this ticket.</p>
-                {% endif %}
             </div>
             {% endfor %}
             {% endif %}
@@ -482,7 +478,6 @@
                     </form>
                 </div>
                 <h4>Comments:</h4>
-                {% if ticket_comments[ticket[0]] %}
                 <div class="comments">
                     <button class="btn-admin" onclick="showAdminComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin
                         Comments</button>
@@ -497,9 +492,6 @@
                         </form>
                     </div>
                 </div>
-                {% else %}
-                <p>No comments available for this ticket.</p>
-                {% endif %}
             </div>
             {% endfor %}
             {% endif %}
@@ -536,7 +528,6 @@
                             Updates</a>
                     </div>
                     <h3>Commments</h3>
-                    {% if user_ticket_comments[ticket[0]] %}
                     <div class="comments">
                         <button class="btn-comment" onclick="showComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View
                             Comments</button>
@@ -549,9 +540,6 @@
                             <!-- Comments and replies will be populated here -->
                         </div>
                     </div>
-                    {% else %}
-                    <p>No comments available for this ticket.</p>
-                    {% endif %}
                     {% endfor %}
                 </div>
                 {% endfor %}
@@ -576,7 +564,6 @@
                             class="btn btn-update">View Updates</a>
                     </div>
                     <h4>Comments:</h4>
-                    {% if ticket_comments[ticket[0]] %}
                     <div class="comments">
                         <button class="btn-admin" onclick="showAdminComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin
                             Comments</button>
@@ -584,9 +571,6 @@
                             <!-- Admin comments will be populated here -->
                         </div>
                     </div>
-                    {% else %}
-                    <p>No comments available for this ticket.</p>
-                    {% endif %}
                     {% endfor %}
                 </div>
                 {% endfor %}
