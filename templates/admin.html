@@ -194,8 +194,8 @@
             background: white;
             padding: 30px;
             border-radius: 15px;
-            width: 60%;
-            max-width: 800px;
+            width: 280%;
+            max-width: 1000px;
             max-height: 80vh;
             overflow-y: auto;
             position: relative;
@@ -382,7 +382,6 @@
         .view-details {
             color: var(--accent);
             text-decoration: underline;
-            margin-left: 10px;
             transition: color 0.3s ease;
         }
 
@@ -428,6 +427,76 @@
         #create-tickets input[type="date"] {
             min-width: 200px;
         }
+
+        .Viewbtn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            margin: 15px;
+            transition: background-color 0.3s ease;
+        }
+
+        .Viewbtn:hover {
+            background-color: #0056b3;
+        }
+
+        .Downloadbtn {
+            background-color: #f1f1f1;
+            color: #007bff;
+            padding: 10px 15px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            margin: 15px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .Downloadbtn:hover {
+            background-color: #e1e1e1;
+        }
+        
+        .view-details{
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-admin {
+                    background-color: #28a745;
+                    padding: 10px 15px;
+                    color: white;
+                }
+
+                .btn-admin:hover {
+                    background-color: #218838;
+                }
+
+                .admin-comments-section {
+                    margin-top: 10px;
+                    padding-left: 20px;
+                    font-size: 14px;
+                }
+
+                .admin-comments-section {
+                    background-color: #f7f7f7;
+                    border-left: 3px solid #28a745;
+                    padding: 10px;
+                }
     </style>
 </head>
 
@@ -460,14 +529,14 @@
             <h3>User Details</h3>
             {% for team_name, team in teams.items() %}
             <div class="user-section">
-                <h4>Team: {{ team_name }}</h4>
+                <h3>Team: {{ team_name }}</h3>
                 {% if team_name == 'Others' %}
                 <p>
-                <h5>Researcher:</h5> {% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
+                <h4>Researcher:</h4> {% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
                 {% else %}
                 <p>
-                <h5>Mentor:</h5> {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
-                <h5>Members:</h5>
+                <h4>Mentor:</h4> {% for mentor in team.mentor %} {{ mentor[1] }} ({{ mentor[2] }}) {% endfor %}</p>
+                <h4>Members:</h4>
                 <p>{% for member in team.members %} {{ member[1] }} ({{ member[2] }}) {% endfor %}</p>
                 {% endif %}
             </div>
@@ -506,17 +575,17 @@
                         <ul>
                             {% for member_email in member_emails %}
                             <li>
-                                <a href="#"
+                                <a class="Viewbtn" href="#"
                                     onclick="showProjectDetails('{{ project_info }}', '{{ team_name }}', '{{ member_email }}')">
                                     View tickets by {{ member_email }}
-                                </a>
+                                </a><br>
                             </li>
                             {% endfor %}
                         </ul>
                         <!-- Display the download link -->
                         {% for project in projects %}
                         {% if project[1] == project_info %}
-                        <a href="{{ url_for('download_project', project_id=project[0]) }}">
+                        <a class="Downloadbtn" href="{{ url_for('download_project', project_id=project[0]) }}">
                             Download {{ project[1] }}
                         </a>
                         {% endif %}
@@ -574,31 +643,34 @@
             <h3>Admin Assigned Tickets</h3>
             {% for user_email, data in admin_tickets.items() %}
             <div class="user-section">
-                <h4>{{ data['role'].capitalize() }}: {{ user_email }}</h4>
+                <h2>Team Name - {{data['team_name']}}</h2>
+                <h2>{{ data['role'].capitalize() }}: {{ user_email }}</h2>
                 {% if data['tickets'] %}
                 <ul class="ticket-list">
                     {% for ticket in data['tickets'] %}
                     <li class="ticket-item">
-                        <strong>{{ ticket[1] }}</strong>: {{ ticket[3] }}
+                        <strong>Ticket ID - {{ ticket[0] }}</strong><br>
+                        <strong>{{ ticket[1] }}</strong>: {{ ticket[2] }}
                         <br>
-                        <small>Created: {{ ticket[6] }}</small>
+                        <strong>Description -</strong> {{ ticket[3] }}<br>
+                        <strong>Ticket Created:</strong> {{ ticket[4] }}<br>
+                        <strong>Expected Date To Close:</strong> {{ ticket[5] }}<br>
+                        <strong>Closed Ticket:</strong> {{ ticket[7] }}<br><br>
                         <a href="#" class="view-details"
                             onclick="showAdminTicketDetails('{{ ticket[0] }}', '{{ ticket[10] }}')">View Details</a>
-                        <h3>Send Comment to User</h3>
-                            <form method="POST" action="{{ url_for('send_comment', ticket_id=ticket[0]) }}">
-                                <label for="comment">Comment:</label>
-                                <textarea name="comment" placeholder="Type your comment here..." required></textarea>
-                                <input type="hidden" name="user_email" value="{{ user_email }}">
-                                <input type="submit" value="Send Comment">
-                            </form>
-                            <h4>Comments:</h4>
-                            <div class="comments">
-                                <button onclick="showAdminComments('{{ ticket[0] }}', '{{ user_email }}')">View Admin
-                                    Comments</button>
-                                    <div id="adminComments_{{ ticket[0] }}_{{ user_email }}" style="display: none;">
-                                        <!-- Admin comments will be populated here -->
-                                    </div>
+                        <h4>Send Comment to User</h4>
+                        <form method="POST" action="{{ url_for('send_comment', ticket_id=ticket[0]) }}">
+                            <textarea name="comment" placeholder="Type your comment here..." required></textarea><br>
+                            <input type="hidden" name="user_email" value="{{ user_email }}"><br>
+                            <input class="view-details" type="submit" value="Send Comment">
+                        </form><br>
+                        <div class="comments">
+                            <button class="btn-admin" onclick="showAdminComments('{{ ticket[0] }}', '{{ user_email }}')">View Admin
+                                Comments</button>
+                            <div class="admin-comments-section" id="adminComments_{{ ticket[0] }}_{{ user_email }}" style="display: none;">
+                                <!-- Admin comments will be populated here -->
                             </div>
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>
@@ -692,11 +764,11 @@
                         </td> <!-- Login Time -->
                         <td>
                             {% if record[3] is not none %}
-                                {% for time in record[3].split(',') %}
-                                    {{ loop.index }}) {{ time }}<br>
-                                {% endfor %}
+                            {% for time in record[3].split(',') %}
+                            {{ loop.index }}) {{ time }}<br>
+                            {% endfor %}
                             {% else %}
-                                No logout times recorded.
+                            No logout times recorded.
                             {% endif %}
                         </td> <!-- Logout Time -->
                         <td>{{ record[5] }}</td> <!-- Duration -->
@@ -722,42 +794,442 @@
                 document.getElementById(section).style.display = 'block';
             }
 
+
             function showProjectDetails(projectInfo, teamName, memberEmail) {
-                const modal = document.getElementById('projectDetailsModal');
-                const modalContent = document.getElementById('modalUpdatesContent');
-
-                modalContent.innerHTML = '<p>Loading project details...</p>';
-                modal.classList.add('show');
-
-                fetch(`/admin/project_details/${encodeURIComponent(projectInfo)}/${encodeURIComponent(teamName)}/${encodeURIComponent(memberEmail)}`)
+                fetch(`/admin_project_details/${projectInfo}/${teamName}/${memberEmail}`)
                     .then(response => response.json())
                     .then(data => {
-                        modalContent.innerHTML = `
-                    <h4>Project: ${data.project_info}</h4>
-                    <p>Description: ${data.description}</p>
-                    <p>Status: ${data.status}</p>
-                    <h5>Assigned Team Members:</h5>
-                    <ul>${data.team_member_names.map(name => `<li>${name}</li>`).join('')}</ul>
-                    <h5>Tickets:</h5>
-                    ${data.tickets.length ? `
-                        <ul>${data.tickets.map(ticket => `
-                            <li>
-                                <strong>${ticket.module_info}:</strong> ${ticket.description}
-                                <br>
-                                <em>Created on: ${ticket.ticket_creation_time}</em>
-                            </li>
-                        `).join('')}</ul>
-                    ` : '<p>No tickets assigned for this project.</p>'}
-                `;
+                        const modalContent = document.getElementById('modalUpdatesContent');
+
+                        // Add styles directly to the modal content
+                        const style = document.createElement('style');
+                        style.innerHTML = `
+                .modal-content {
+                    padding: 20px;
+                    background-color: #fff;
+                    border-radius: 8px;
+                    max-width: 900px;
+                    margin: 0 auto;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+
+                h3, h4, h5, h6 {
+                    font-family: 'Arial', sans-serif;
+                    margin-bottom: 10px;
+                }
+
+                h4, h5 {
+                    color: #007bff;
+                }
+
+                .project-details, .assigned-members, .ticket {
+                    margin-bottom: 20px;
+                    padding: 15px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    background-color: #f9f9f9;
+                }
+
+                .project-details h3, .assigned-members h4, .tickets h4 {
+                    margin-top: 20px;
+                    font-size: 18px;
+                }
+
+                .project-details {
+                    background-color: #e3f2fd;
+                    border: 1px solid #2196f3;
+                }
+
+                .assigned-members {
+                    background-color: #fff3e0;
+                    border: 1px solid #ffb74d;
+                }
+
+                .ticket {
+                    background-color: #f1f8e9;
+                    border: 1px solid #388e3c;
+                }
+
+                .assigned-members ul {
+                    list-style-type: none;
+                    padding-left: 0;
+                }
+
+                li {
+                    margin-bottom: 5px;
+                    font-size: 14px;
+                }
+
+                p {
+                    margin: 5px 0;
+                }
+
+                .ticket-updates .update {
+                    padding: 10px;
+                    border: 1px solid #f1f1f1;
+                    border-radius: 4px;
+                    margin-bottom: 10px;
+                    background-color: #f9f9f9;
+                }
+
+                .ticket-updates h6 {
+                    margin-bottom: 10px;
+                }
+
+                .ticket-actions {
+                    display: flex;
+                    gap: 10px;
+                    margin-top: 10px;
+                }
+
+                button {
+                    padding: 10px 15px;
+                    font-size: 14px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    border: none;
+                }
+
+                button:focus {
+                    outline: none;
+                }
+
+                button:hover {
+                    opacity: 0.8;
+                }
+
+                .btn-primary {
+                    background-color: #007bff;
+                    color: white;
+                }
+
+                .btn-primary:hover {
+                    background-color: #0056b3;
+                }
+
+                .btn-secondary {
+                    background-color: #f1f1f1;
+                    color: #007bff;
+                }
+
+                .btn-secondary:hover {
+                    background-color: #e1e1e1;
+                }
+
+                .btn-admin {
+                    background-color: #28a745;
+                    color: white;
+                }
+
+                .btn-admin:hover {
+                    background-color: #218838;
+                }
+
+                .comment-form {
+                    margin-top: 10px;
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    background-color: #f9f9f9;
+                }
+
+                .comment-form textarea {
+                    width: 90%;
+                    padding: 10px;
+                    font-size: 14px;
+                    border-radius: 5px;
+                    border: 1px solid #ccc;
+                    margin-bottom: 10px;
+                    resize: none; /* Disable resizing */
+                }
+
+                .comment-form button {
+                    background-color: #007bff;
+                    color: white;
+                }
+
+                .comments-section, .admin-comments-section {
+                    margin-top: 10px;
+                    padding-left: 20px;
+                    font-size: 14px;
+                }
+
+                .comments-section {
+                    background-color: #f7f7f7;
+                    border-left: 3px solid #007bff;
+                    padding: 10px;
+                }
+
+                .admin-comments-section {
+                    background-color: #f7f7f7;
+                    border-left: 3px solid #28a745;
+                    padding: 10px;
+                }
+
+                .no-updates {
+                    font-style: italic;
+                    color: #888;
+                    text-align: center;
+                }
+
+                /* Style for the Ticket Daily Updates section */
+                .ticket-daily-updates{
+                    padding: 10px;
+                    border: 1px solid #f1f1f1;
+                    border-radius: 4px;
+                    margin-bottom: 10px;
+                    background-color: #f9f9f9;
+                    display: none; 
+                }
+
+                .ticket-daily-updates h4 {
+                    margin-bottom: 10px;
+                }
+                .ticket-daily-updates.show {
+                    display: block; /* Show the updates when the button is clicked */
+                }
+
+                .ticket-daily-updates p {
+                    font-size: 14px;
+                }
+
+                .update-item {
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px; 
+                    background-color: #fff; 
+                    margin-bottom: 8px;
+                }
+
+                .update-item p {
+                    margin: 5px 0;
+                }
+
+                .toggle-btn {
+                    background-color: #007bff;
+                    color: white;
+                    border-radius: 5px;
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    border: none;
+                }
+
+                .toggle-btn:hover {
+                    opacity: 0.8;
+                }
+            `;
+                        document.head.appendChild(style); // Add the styles to the document
+
+                        // Build the HTML content dynamically
+                        let content = `
+                <div class="project-details">
+                    <h3>Project Details</h3>
+                    <p><strong>Project Name:</strong> ${data.project[3]}</p>
+                    <p><strong>Status:</strong> ${data.project[7]}</p>
+                    <p><strong>Project Created On:</strong> ${data.project_creation_date}</p>
+                    <p><strong>Project Closed On:</strong> ${data.project[6] ? data.project[6] : 'Not Yet Closed'}</p>
+                </div>
+            `;
+
+                        // Display assigned members
+                        content += `
+                <div class="assigned-members">
+                    <h3>Assigned Members</h3>
+                    ${data.team_member_names.length > 0 ? `
+                        <ul>
+                            ${data.team_member_names.map((name, index) => `
+                                <li><strong>${name}</strong> (${data.team_member_emails[index]})</li>
+                            `).join('')}
+                        </ul>
+                    ` : '<p>No team members assigned to this project.</p>'}
+                </div>
+            `;
+
+                        // Check if tickets exist and display them
+                        if (data.tickets && data.tickets.length > 0) {
+                            data.tickets.forEach(ticket => {
+                                content += `
+                        <div class="ticket">
+                            <h4>Ticket - ${ticket[0]}</h4>
+                            <p><strong>Module:</strong> ${ticket[2]}</p>
+                            <p><strong>Description:</strong> ${ticket[3]}</p>
+                            <p><strong>Created On:</strong> ${ticket[6]}</p>
+                            <p><strong>Start Date:</strong> ${ticket[4]}</p>
+                            <p><strong>Expected Date:</strong> ${ticket[5]}</p>
+                            <p><strong>Status:</strong> ${ticket[11]}</p>
+                            <p><strong>Ticket Closed On:</strong> ${ticket[7] ? ticket[7] : 'Not Yet Closed'}</p>
+                    `;
+
+                                // Add the "Ticket Daily Updates" button
+                                content += `
+                        <button class="toggle-btn" onclick="toggleDailyUpdates(${ticket[0]})">Ticket Daily Updates</button>
+                    `;
+
+                                // Check if updates exist for the ticket
+                                if (data.ticket_updates && data.ticket_updates[ticket[0]] && data.ticket_updates[ticket[0]].length > 0) {
+                                    content += `
+                            <div id="ticket-updates-${ticket[0]}" class="ticket-daily-updates">
+                                <h4>Updates for Ticket #${ticket[0]}</h4>
+                                ${data.ticket_updates[ticket[0]].map(update => `
+                                    <div class="update-item">
+                                        <p><strong>Date:</strong> ${update[2]}</p>
+                                        <p><strong>Description:</strong> ${update[3]}</p>
+                                        <p><strong>Stage:</strong> ${update[4]}</p>
+                                        <p><strong>State:</strong> ${update[5]}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                                } else {
+                                    content += `<p class="no-updates">No updates available for this ticket.</p>`;
+                                }
+
+                                // Adding buttons and comment form for the ticket
+                                content += `
+                        <div class="ticket-actions">
+                            <button class="btn-primary" onclick="showCommentForm(${ticket[0]}, '${memberEmail}')">Comment</button>
+                            <button class="btn-secondary" onclick="showComments(${ticket[0]}, '${memberEmail}')">View Comments</button>
+                            <button class="btn-admin" onclick="showAdmin('${ticket[0]}', '${memberEmail}')">View Admin Comments</button>
+                        </div>
+
+                        <div id="commentForm_${ticket[0]}" class="comment-form" style="display: none;">
+                            <textarea id="commentInput_${ticket[0]}" placeholder="Type your comment here..."></textarea>
+                            <button class="btn-primary" onclick="sendComment(${ticket[0]}, '${memberEmail}')">Send Comment</button>
+                        </div>
+
+                        <div id="comments_${ticket[0]}_${memberEmail}" class="comments-section" style="display: none;">
+                            <!-- Comments and replies will be populated here -->
+                        </div>
+
+                        <div id="comments_admin_${ticket[0]}_${memberEmail}" class="admin-comments-section" style="display: none;">
+                            <!-- Admin comments and replies will be populated here -->
+                        </div>
+                    `;
+                                content += `</div>`; // Close the ticket div
+                            });
+                        } else {
+                            content += '<p>No tickets available for this project.</p>';
+                        }
+
+                        // Append the content to the modal
+                        modalContent.innerHTML = content;
+
+                        // Show the modal
+                        const modal = document.getElementById('projectDetailsModal');
+                        modal.classList.add('show'); // Add the 'show' class to display the modal
+                        // Close modal when clicking the close button
+                        const closeBtn = modal.querySelector('.close');
+                        closeBtn.onclick = function () {
+                            modal.classList.remove('show');
+                        }
+
+                        // Close modal when clicking outside of the modal content
+                        modal.onclick = function (event) {
+                            if (event.target === modal) {
+                                modal.classList.remove('show');
+                            }
+                        }
                     })
                     .catch(error => {
                         console.error('Error fetching project details:', error);
-                        modalContent.innerHTML = '<p>Error loading project details</p>';
                     });
             }
 
+            function toggleDailyUpdates(ticketId) {
+                const updatesElement = document.getElementById(`ticket-updates-${ticketId}`);
+                if (updatesElement) {
+                    updatesElement.classList.toggle('show');
+                }
+            }
+
+
             function closeModal() {
-                document.getElementById('projectDetailsModal').classList.remove('show');
+                const modal = document.getElementById('projectDetailsModal');
+                modal.classList.remove('show');
+            }
+
+            function showCommentForm(ticketId, memberEmail) {
+                const commentForm = document.getElementById(`commentForm_${ticketId}`);
+                commentForm.style.display = commentForm.style.display === 'block' ? 'none' : 'block';
+            }
+
+            function sendComment(ticketId, memberEmail) {
+                // Select the textarea element by its ID
+                const commentInput = document.querySelector(`#commentInput_${ticketId}`);
+
+                if (!commentInput) {
+                    alert("Comment input not found.");
+                    return;
+                }
+
+                const comment = commentInput.value;
+
+                if (!comment) {
+                    alert("Please enter a comment.");
+                    return;
+                }
+
+                fetch(`/send_comment_userAd/${ticketId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ comment: comment, user_email: memberEmail }) // Ensure user_email is included
+                })
+                    .then(response => {
+                        if (response.redirected) {
+                            // Handle redirection if the user is not logged in
+                            window.location.href = response.url; // Redirect to login page
+                        } else {
+                            return response.json();
+                        }
+                    })
+                    .then(data => {
+                        if (data && data.success) {
+                            // Clear the input and refresh comments
+                            commentInput.value = ''; // Clear the textarea
+                            // Optionally, refresh the comments section here
+                        } else {
+                            alert("Error sending comment: " + (data.message || "Unknown error"));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+
+            function showAdmin(ticketId, memberEmail) {
+                const commentsDiv = document.getElementById(`comments_admin_${ticketId}_${memberEmail}`);
+
+                if (commentsDiv.style.display === 'block') {
+                    commentsDiv.style.display = 'none';
+                } else {
+                    fetch(`/get_admin_user_comments/${ticketId}/${memberEmail}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            commentsDiv.innerHTML = ''; // Clear previous comments
+                            if (data.length === 0) {
+                                const noCommentsMessage = document.createElement('div');
+                                noCommentsMessage.classList.add('no-comments');
+                                noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                                commentsDiv.appendChild(noCommentsMessage);
+                            } else {
+                                data.forEach(item => {
+                                    const commentElement = document.createElement('div');
+                                    commentElement.classList.add('comment');
+                                    commentElement.innerHTML = `
+                            <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                            <p>${item.content}</p>
+                        `;
+                                    commentsDiv.appendChild(commentElement);
+                                });
+                            }
+                            commentsDiv.style.display = 'block'; // Show the comments
+                        })
+                        .catch(error => {
+                            console.error('Error fetching comments:', error);
+                        });
+                }
             }
 
             function searchUser() {
@@ -773,23 +1245,6 @@
                 });
             }
 
-            function showProjectDetails(projectInfo, teamName, memberEmail) {
-                const modal = document.getElementById('projectDetailsModal');
-                const modalContent = document.getElementById('modalUpdatesContent');
-
-                modalContent.innerHTML = '<p>Loading project details...</p>';
-                modal.classList.add('show');
-
-                fetch(`/admin/project_details/${encodeURIComponent(projectInfo)}/${encodeURIComponent(teamName)}/${encodeURIComponent(memberEmail)}`)
-                    .then(response => response.text())
-                    .then(html => {
-                        modalContent.innerHTML = html;
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        modalContent.innerHTML = '<p>Error loading project details</p>';
-                    });
-            }
 
             function searchAttendance() {
                 const query = document.getElementById('attendanceSearchBar').value.toLowerCase();
@@ -934,34 +1389,138 @@
                         return response.json();
                     })
                     .then(data => {
-                        let content = `
-                        <div class="ticket-details">
-                            <h4>Ticket: ${data.ticket[0]}</h4>
-                            <p><strong>Description:</strong> ${data.ticket[3]}</p>
-                            <p><strong>Created:</strong> ${data.ticket[6]}</p>
-                            <p><strong>Started On:</strong> ${data.ticket[4]}</p>
-                            <p><strong>Expected To End:</strong> ${data.ticket[5]}</p>
-                            <p><strong>Status:</strong> ${data.ticket[11]}</p>
-                            <p><strong>Closed On:</strong> ${data.ticket[7] ? data.ticket[7] : 'Not Closed Yet'}</p>
-                        </div>
-                        <div class="ticket-updates">
-                            <h5>Updates:</h5>
-                    `;
+                        // Create and apply styles for the modal content
+                        const style = document.createElement('style');
+                        style.innerHTML = `
+                .modal-content {
+                    padding: 20px;
+                    background-color: #fff;
+                    border-radius: 8px;
+                    max-width: 900px;
+                    margin: 0 auto;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
 
+                h3, h4, h5, h6 {
+                    font-family: 'Arial', sans-serif;
+                    margin-bottom: 10px;
+                }
+
+                h4 {
+                    color: #007bff;
+                }
+
+                .ticket-details {
+                    margin-bottom: 20px;
+                    padding: 15px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    background-color: #f9f9f9;
+                }
+
+                .ticket-details h4 {
+                    margin-top: 20px;
+                    font-size: 18px;
+                }
+
+                .ticket-details p {
+                    margin: 5px 0;
+                }
+
+                .ticket-updates {
+                    margin-top: 20px;
+                    padding: 15px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    background-color: #f1f8e9;
+                }
+
+                .ticket-update {
+                    padding: 10px;
+                    border: 1px solid #f1f1f1;
+                    border-radius: 4px;
+                    margin-bottom: 10px;
+                    background-color: #f9f9f9;
+                }
+
+                .ticket-update p {
+                    margin: 5px 0;
+                }
+
+                .ticket-actions {
+                    display: flex;
+                    gap: 10px;
+                    margin-top: 10px;
+                }
+
+                button {
+                    padding: 10px 15px;
+                    font-size: 14px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    border: none;
+                }
+
+                button:focus {
+                    outline: none;
+                }
+
+                button:hover {
+                    opacity: 0.8;
+                }
+
+                .btn-primary {
+                    background-color: #007bff;
+                    color: white;
+                }
+
+                .btn-primary:hover {
+                    background-color: #0056b3;
+                }
+
+                .btn-secondary {
+                    background-color: #f1f1f1;
+                    color: #007bff;
+                }
+
+                .btn-secondary:hover {
+                    background-color: #e1e1e1;
+                }
+            `;
+                        document.head.appendChild(style);
+
+                        // Dynamically build the content
+                        let content = `
+                <div class="ticket-details">
+                    <h4>Ticket: ${data.ticket[0]}</h4>
+                    <p><strong>Description:</strong> ${data.ticket[3]}</p>
+                    <p><strong>Created:</strong> ${data.ticket[6]}</p>
+                    <p><strong>Started On:</strong> ${data.ticket[4]}</p>
+                    <p><strong>Expected To End:</strong> ${data.ticket[5]}</p>
+                    <p><strong>Status:</strong> ${data.ticket[11]}</p>
+                    <p><strong>Closed On:</strong> ${data.ticket[7] ? data.ticket[7] : 'Not Closed Yet'}</p>
+                </div>
+                <div class="ticket-updates">
+                    <h5>Updates:</h5>
+            `;
+
+                        // Check if daily updates exist
                         if (data.daily_updates.length) {
                             data.daily_updates.forEach(update => {
                                 content += `
-                                <div class="ticket-update">
-                                    <p><strong>${update[2]}:</strong> ${update[3]}</p>
-                                    <p><em>Stage: ${update[4]}, State: ${update[5]}</em></p>
-                                </div>
-                            `;
+                    <div class="ticket-update">
+                        <p><strong>${update[2]}:</strong> ${update[3]}</p>
+                        <p><em>Stage: ${update[4]}, State: ${update[5]}</em></p>
+                    </div>
+                `;
                             });
                         } else {
                             content += '<p>No updates for this ticket.</p>';
                         }
 
                         content += '</div>';
+
+                        // Display the content in the modal
                         ticketDetails.innerHTML = content;
                     })
                     .catch(error => {
@@ -969,16 +1528,19 @@
                         ticketDetails.innerHTML = '<p>Error loading ticket details. Please try again.</p>';
                     });
 
+                // Close the modal when clicking on the close button
                 closeBtn.onclick = function () {
                     modal.style.display = 'none';
-                }
+                };
 
+                // Close the modal when clicking outside the modal
                 window.onclick = function (event) {
                     if (event.target == modal) {
                         modal.style.display = 'none';
                     }
-                }
+                };
             }
+
         </script>
 
         <script>
@@ -1069,66 +1631,81 @@
 
 
             function showAdminComments(ticketId, memberEmail) {
-    const commentsDiv = document.getElementById(`adminComments_${ticketId}_${memberEmail}`);
+                const commentsDiv = document.getElementById(`adminComments_${ticketId}_${memberEmail}`);
 
-    // Check if the commentsDiv is currently displayed
-    if (commentsDiv.style.display === 'block') {
-        // If it is displayed, hide it
-        commentsDiv.style.display = 'none';
-    } else {
-        // If it is not displayed, fetch and show comments
-        fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
-            .then(response => response.json())
-            .then(data => {
-                commentsDiv.innerHTML = ''; // Clear previous comments
+                // Check if the commentsDiv is currently displayed
+                if (commentsDiv.style.display === 'block') {
+                    // If it is displayed, hide it
+                    commentsDiv.style.display = 'none';
+                } else {
+                    // If it is not displayed, fetch and show comments
+                    fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            commentsDiv.innerHTML = ''; // Clear previous comments
 
-                // Render comments and replies
-                data.forEach(item => {
-                    const commentElement = document.createElement('div');
-                    commentElement.classList.add('comment');
-                    commentElement.innerHTML = `
-                        <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
-                        <p>${item.content}</p>
-                    `;
-                    commentsDiv.appendChild(commentElement);
-                });
-
-                commentsDiv.style.display = 'block'; // Show the comments
-            })
-            .catch(error => {
-                console.error('Error fetching admin comments:', error);
-            });
-    }
-}
-
-        function showComments(ticketId, memberEmail) {
-            const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
-
-            if (commentsDiv.style.display === 'block') {
-                commentsDiv.style.display = 'none';
-            } else {
-                fetch(`/get_comments/${ticketId}/${memberEmail}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        commentsDiv.innerHTML = ''; // Clear previous comments
-
-                        data.forEach(item => {
-                            const commentElement = document.createElement('div');
-                            commentElement.classList.add('comment');
-                            commentElement.innerHTML = `
+                            // Check if there are comments
+                            if (data.length === 0) {
+                                const noCommentsMessage = document.createElement('div');
+                                noCommentsMessage.classList.add('no-comments');
+                                noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                                commentsDiv.appendChild(noCommentsMessage);
+                            } else {
+                                // Render comments and replies
+                                data.forEach(item => {
+                                    const commentElement = document.createElement('div');
+                                    commentElement.classList.add('comment');
+                                    commentElement.innerHTML = `
                             <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
                             <p>${item.content}</p>
                         `;
-                            commentsDiv.appendChild(commentElement);
-                        });
+                                    commentsDiv.appendChild(commentElement);
+                                });
+                            }
 
-                        commentsDiv.style.display = 'block'; // Show the comments
-                    })
-                    .catch(error => {
-                        console.error('Error fetching comments:', error);
-                    });
+                            commentsDiv.style.display = 'block'; // Show the comments
+                        })
+                        .catch(error => {
+                            console.error('Error fetching admin comments:', error);
+                        });
+                }
             }
-        }
+
+            function showComments(ticketId, memberEmail) {
+                const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
+
+                if (commentsDiv.style.display === 'block') {
+                    commentsDiv.style.display = 'none';
+                } else {
+                    fetch(`/get_comments/${ticketId}/${memberEmail}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            commentsDiv.innerHTML = ''; // Clear previous comments
+
+                            if (data.length === 0) {
+                                const noCommentsMessage = document.createElement('div');
+                                noCommentsMessage.classList.add('no-comments');
+                                noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                                commentsDiv.appendChild(noCommentsMessage);
+                            } else {
+                                data.forEach(item => {
+                                    const commentElement = document.createElement('div');
+                                    commentElement.classList.add('comment');
+                                    commentElement.innerHTML = `
+                            <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                            <p>${item.content}</p>
+                        `;
+                                    commentsDiv.appendChild(commentElement);
+                                });
+                            }
+
+                            commentsDiv.style.display = 'block'; // Show the comments
+                        })
+                        .catch(error => {
+                            console.error('Error fetching comments:', error);
+                        });
+                }
+            }
         </script>
 </body>
 

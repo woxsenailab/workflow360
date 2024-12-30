@@ -180,11 +180,11 @@
         <div class="update-box">
             {% for update in daily_updates %}
             <p><strong>{{ update[2] }} ({{ update[4] }}):</strong> {{ update[3] }}</p>
-            {% if update[6] %}
+            <!-- {% if update[6] %}
             <img src="{{ update[6] }}" alt="Update Image" style="width: 100px; height: 100px;"/>
             {% else %}
             <p>No image available for this update.</p>
-            {% endif %}
+            {% endif %} -->
             {% endfor %}
         </div>
         {% else %}
@@ -206,8 +206,8 @@
                     <option value="Completed">Completed</option>
                 </select>
 
-                <label for="images">Upload Images:</label>
-                <input type="file" name="images" id="images" multiple><br>
+                <!-- <label for="images">Upload Images:</label>
+                <input type="file" name="images" id="images" multiple><br> -->
 
                 <button type="submit">Add Daily Update</button>
             </form>

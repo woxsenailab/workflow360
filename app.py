@@ -5,9 +5,6 @@ import zipfile
 import csv
 from datetime import datetime, timedelta
 import base64
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -1025,16 +1022,16 @@ def admin():
 
     # Fetch admin-created tickets for both mentors and team members
     admin_tickets = {}
-    c.execute("SELECT email, role FROM signup WHERE role IN ('mentor', 'team_member', 'researchers')")
+    c.execute("SELECT email, role, team_name FROM signup WHERE role IN ('mentor', 'team_member', 'researchers')")
     users = c.fetchall()
 
     for user in users:
-        user_email, role = user
+        user_email, role, team_name = user
         admin_email_table = f'admin_tickets_{user_email.replace("@", "_").replace(".", "_")}'
         try:
             c.execute(f"SELECT * FROM {admin_email_table}")
             tickets = c.fetchall()
-            admin_tickets[user_email] = {'role': role, 'tickets': tickets}
+            admin_tickets[user_email] = {'role': role, 'tickets': tickets, 'team_name': team_name}
         except sqlite3.OperationalError:
             print(f"Table {admin_email_table} does not exist. Skipping admin tickets for {user_email}.")
 
@@ -1165,7 +1162,7 @@ def admin_ticket_updates_display(ticket_id):
         'daily_updates': daily_updates
     })
 
-@app.route('/admin/project_details/<project_info>/<team_name>/<member_email>')
+@app.route('/admin_project_details/<project_info>/<team_name>/<member_email>')
 def admin_project_details(project_info, team_name, member_email):
     if 'admin' not in session:
         return "Unauthorized", 403
@@ -1183,6 +1180,8 @@ def admin_project_details(project_info, team_name, member_email):
 
     user_ticket_comments = {}
     user_ticket_comments_rply = {}
+    userAd_ticket_comments = {}
+    userAd_ticket_comments_rply = {}
 
     # Get the user-specific tables for tickets and daily updates
     user_email_table = f'tickets_{member_email.replace("@", "_").replace(".", "_")}'
@@ -1215,6 +1214,14 @@ def admin_project_details(project_info, team_name, member_email):
         usercommentsRply = c.fetchall()
         user_ticket_comments_rply[user_ticket_id] = usercommentsRply
 
+        c.execute("SELECT * FROM admin_user_comments WHERE ticket_id = ?", (user_ticket_id,))
+        userAd_comments = c.fetchall()
+        userAd_ticket_comments[user_ticket_id] = userAd_comments
+
+        c.execute("SELECT * FROM admin_user_replies WHERE comment_id = ?", (user_ticket_id,))
+        userAdcommentsRply = c.fetchall()
+        userAd_ticket_comments_rply[user_ticket_id] = userAdcommentsRply
+
     # Fetch assigned members for the project
     c.execute("""
         SELECT DISTINCT s.name, s.email 
@@ -1233,16 +1240,19 @@ def admin_project_details(project_info, team_name, member_email):
     # Prepare project creation date
     project_creation_date = project[5]  # Assuming start_date is the 6th column
 
-    return render_template('project_details_modal.html',
-                         project=project,
-                         tickets=tickets,
-                         ticket_updates=ticket_updates,
-                         member_email=member_email,
-                         team_member_names=member_names,
-                         team_member_emails=member_emails,
-                         project_creation_date=project_creation_date,
-                         user_ticket_comments=user_ticket_comments,
-                         user_ticket_comments_rply=user_ticket_comments_rply)
+    return jsonify({
+        "project": project,
+        "tickets": tickets,
+        "ticket_updates": ticket_updates,
+        "member_email": member_email,
+        "team_member_names": member_names,
+        "team_member_emails": member_emails,
+        "project_creation_date": project_creation_date,
+        "user_ticket_comments": user_ticket_comments,
+        "user_ticket_comments_rply": user_ticket_comments_rply,
+        "userAd_ticket_comments": userAd_ticket_comments,
+        "userAd_ticket_comments_rply": userAd_ticket_comments_rply
+    })   
 
 @app.route('/admin/attendance', methods=['GET'])
 def fetch_attendance():
@@ -1846,7 +1856,6 @@ def ticket_details(ticket_id):
         SELECT * FROM {user_updates_table} WHERE ticket_id = ? ORDER BY update_date ASC
     """, (ticket_id,))
     daily_updates = c.fetchall()
-    print("Base64 Encoded Image Data:", update[6])  
 
     for update in daily_updates:
         if update[6]: 
@@ -2247,8 +2256,10 @@ def send_comment_userAd(ticket_id):
         flash("You must be logged in as an admin to view this page.", "error")
         return redirect(url_for('admin_login_page'))
 
-    comment = request.form['comment']
-    user_email = request.form['user_email'] 
+    # Get the JSON data from the request
+    data = request.get_json()
+    comment = data.get('comment')  # Use .get() to avoid KeyError
+    user_email = data.get('user_email')
 
     if not comment or not user_email:
         flash("Comment or user email is missing.", "error")
@@ -2269,7 +2280,6 @@ def send_comment_userAd(ticket_id):
             INSERT INTO admin_user_comments(ticket_id, admin_email, user_email, comment, role, team_name, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (ticket_id, "hemachandran.k@woxsen.edu.in", user_email, comment, role, team_name, created_at))
-
         conn.commit()
     else:
         flash("User  information not found.", "error")
@@ -2277,18 +2287,6 @@ def send_comment_userAd(ticket_id):
     conn.close()
     flash("Comment sent successfully!", "success")
     return redirect(url_for('admin', ticket_id=ticket_id))
-
-
-# def send_email_notification(user_email, comment):
-#     msg = MIMEText(f"You have received a new comment from the admin: {comment}")
-#     msg['Subject'] = 'New Comment on Your Ticket'
-#     msg['From'] = 'your_email@example.com'
-#     msg['To'] = user_email
-
-#     with smtplib.SMTP('smtp.example.com', 587) as server:
-#         server.starttls()
-#         server.login('your_email@example.com', 'your_password')
-#         server.send_message(msg)
 
 @app.route('/reply_comment/<int:comment_id>', methods=['POST'])
 def reply_comment(comment_id):
@@ -2511,7 +2509,6 @@ def get_admin_comments(ticket_id, member_email):
     conn.close()
     return jsonify(combined)
 
-
 @app.route('/get_admin_user_comments/<int:ticket_id>/<member_email>')
 def get_admin_user_comments(ticket_id, member_email):
     conn = sqlite3.connect('database.db')
@@ -2544,7 +2541,7 @@ def get_admin_user_comments(ticket_id, member_email):
     
     conn.close()
     return jsonify(combined)
-    
+
 # Main route (home)
 @app.route('/')
 def index():

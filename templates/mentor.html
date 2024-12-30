@@ -553,28 +553,26 @@
                         </div>
                     </div>
                 </div>
-                <div class="ticket-actions">
                     <a href="{{ url_for('admin_ticket_details', ticket_id=ticket[0], source='mentor') }}"
                         class="btn btn-update">Add Daily Update</a>
                     <form action="{{ url_for('admin_close_ticket', ticket_id=ticket[0], source='mentor') }}"
                         method="POST" style="display:inline;">
                         <button type="submit" class="btn btn-close">Close Ticket</button>
                     </form>
-                </div>
                 <h4>Comments:</h4>
                 <div class="comments">
                     <button onclick="showAdminComments('{{ ticket[0] }}', `{{ session['email'] }}`)">View Admin
                         Comments</button>
-                        <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
-                            <!-- Admin comments will be populated here -->
-                        </div>
-                        <button onclick="showReplyForm('{{ ticket[0] }}')">Reply</button>
-                        <div id="replyForm_{{ ticket[0] }}" class="reply-form" style="display:none;">
-                            <form method="POST" action="{{ url_for('reply_comment', comment_id=ticket[0]) }}">
-                                <textarea name="reply" required placeholder="Type your reply here..."></textarea>
-                                <input type="submit" value="Send Reply">
-                            </form>
-                        </div>
+                    <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                        <!-- Admin comments will be populated here -->
+                    </div>
+                    <button onclick="showReplyForm('{{ ticket[0] }}')">Reply</button>
+                    <div id="replyForm_{{ ticket[0] }}" class="reply-form" style="display:none;">
+                        <form method="POST" action="{{ url_for('reply_comment', comment_id=ticket[0]) }}">
+                            <textarea name="reply" required placeholder="Type your reply here..."></textarea>
+                            <input type="submit" value="Send Reply">
+                        </form>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -607,9 +605,9 @@
                     <h4>Comments:</h4>
                     <button onclick="showAdminComments('{{ ticket[0] }}', `{{ session['email'] }}`)">View Admin
                         Comments</button>
-                        <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
-                            <!-- Admin comments will be populated here -->
-                        </div>
+                    <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                        <!-- Admin comments will be populated here -->
+                    </div>
                     {% endfor %}
                 </div>
                 {% endfor %}
@@ -793,10 +791,175 @@
             fetch(`/get_tickets/${memberEmail}/${projectInfo}`)
                 .then(response => response.json())
                 .then(data => {
+                    const style = document.createElement('style');
+                    style.innerHTML = ` 
+                        /* Modal and Content Styling */
+                        #ticketModal {
+                            position: fixed;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 80%;
+                            max-width: 900px;
+                            background-color: #fff;
+                            border-radius: 10px;
+                            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                            padding: 20px;
+                            display: none;
+                            z-index: 1000;
+                            overflow-y: auto;
+                            animation: fadeIn 0.3s ease-in-out;
+                        }
+
+                        /* Ticket Card Styling */
+                        .ticket-card {
+                            margin-bottom: 20px;
+                            padding: 20px;
+                            background-color: #fff;
+                            border-radius: 8px;
+                            border: 1px solid #ddd;
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                            transition: transform 0.3s ease-in-out;
+                        }
+
+                        .ticket-card:hover {
+                            transform: translateY(-5px);
+                        }
+
+                        .ticket-title {
+                            font-size: 22px;
+                            color: #4CAF50; /* Green color for ticket ID */
+                            margin-bottom: 12px;
+                        }
+
+                        .ticket-card p {
+                            margin: 8px 0;
+                            font-size: 14px;
+                            color: #333;
+                        }
+
+                        /* Action Buttons */
+                        .btn-action {
+                            padding: 10px 15px;
+                            font-size: 14px;
+                            border-radius: 5px;
+                            background-color: #FF5722; /* Vibrant Orange */
+                            color: white;
+                            border: none;
+                            margin: 5px 0;
+                            cursor: pointer;
+                            transition: background-color 0.3s ease;
+                        }
+
+                        .btn-action:hover {
+                            background-color: #FF3D00; /* Darker Orange */
+                        }
+
+                        /* View Daily Updates Button Styling */
+                        .btn-daily-updates {
+                            background-color: #2196F3; /* Blue */
+                            color: white;
+                        }
+
+                        .btn-daily-updates:hover {
+                            background-color: #1976D2; /* Darker Blue */
+                        }
+
+                        /* Daily Updates Section */
+                        .ticket-updates {
+                            padding: 10px;
+                            margin-top: 10px;
+                            border: 1px solid #ddd;
+                            background-color: #f1f1f1;
+                            border-radius: 8px;
+                            background: linear-gradient(135deg, #FFEB3B, #FF9800); /* Yellow to Orange gradient */
+                            color: #333;
+                            transition: background 0.3s ease-in-out;
+                        }
+
+                        .ticket-updates:hover {
+                            background: linear-gradient(135deg, #FF9800, #FF5722); /* Vibrant orange-red gradient */
+                        }
+
+                        /* Comment Section */
+                        .comment-form {
+                            margin-top: 10px;
+                            padding: 10px;
+                            border: 1px solid #ddd;
+                            border-radius: 8px;
+                            background-color: #f9f9f9;
+                        }
+
+                        .comment-form textarea {
+                            width: 90%;
+                            padding: 10px;
+                            font-size: 14px;
+                            border-radius: 5px;
+                            border: 1px solid #ccc;
+                            margin-bottom: 10px;
+                            resize: none;
+                            box-sizing: border-box;
+                        }
+
+                        .comment-form button {
+                            background-color: #4CAF50; /* Green */
+                            color: white;
+                            padding: 8px 12px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                        }
+
+                        .comment-form button:hover {
+                            background-color: #388E3C; /* Darker Green */
+                        }
+
+                        /* Comments Section */
+                        .comments-section {
+                            margin-top: 10px;
+                            padding: 10px;
+                            background-color: #f7f7f7;
+                            border-left: 3px solid #4CAF50; /* Green left border */
+                            border-radius: 8px;
+                        }
+
+                        /* Modal Close Button */
+                        #ticketModal .close {
+                            position: absolute;
+                            top: 15px;
+                            right: 15px;
+                            font-size: 24px;
+                            cursor: pointer;
+                            color: #4CAF50;
+                        }
+
+                        #ticketModal .close:hover {
+                            color: #388E3C;
+                        }
+
+                        /* Modal Fade In Animation */
+                        @keyframes fadeIn {
+                            0% {
+                                opacity: 0;
+                            }
+                            100% {
+                                opacity: 1;
+                            }
+                        }
+
+                        /* Add some shadow and transition to buttons */
+                        .btn-primary, .btn-action, .btn-daily-updates {
+                            transition: transform 0.3s ease, box-shadow 0.3s ease;
+                        }
+
+                        .btn-primary:hover, .btn-action:hover, .btn-daily-updates:hover {
+                            transform: translateY(-3px);
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                        }
+                    `;
                     const modalContent = document.getElementById('modalTicketsContent');
                     modalContent.innerHTML = data.map(ticket => `
-                <div>
-                    <h2><strong>Ticket ID:</strong> ${ticket.id}</h2>
+                <div class="ticket-card">
+                    <h2 class="ticket-title"><strong>Ticket ID:</strong> ${ticket.id}</h2>
                     <p><strong>Module:</strong> ${ticket.Module}</p>
                     <p><strong>Description:</strong> ${ticket.description}</p>
                     <p><strong>Ticket Created:</strong> ${ticket.created}</p>
@@ -804,17 +967,17 @@
                     <p><strong>Expected End Date:</strong> ${ticket.expected}</p>
                     <p><strong>Status:</strong> ${ticket.status}</p>
                     <p><strong>Closed Date:</strong> ${ticket.closed ? ticket.closed : 'Not Closed Yet'}</p>
-                    <button onclick="showDailyUpdates(${ticket.id}, '${memberEmail}')">View Daily Updates</button>
-                    <div id="dailyUpdates_${ticket.id}" style="display: none;">
+                    <button class="btn-action" onclick="showDailyUpdates(${ticket.id}, '${memberEmail}')">View Daily Updates</button>
+                    <div id="dailyUpdates_${ticket.id}" class="ticket-updates" style="display: none;">
                         <!-- Daily updates will be populated here -->
                     </div>
-                    <button onclick="showCommentForm(${ticket.id}, '${memberEmail}')">Comment</button>
-                    <button onclick="showComments(${ticket.id}, '${memberEmail}')">View Comments</button>
-                    <div id="commentForm_${ticket.id}" style="display: none;">
+                    <button class="btn-action" onclick="showCommentForm(${ticket.id}, '${memberEmail}')">Comment</button>
+                    <button class="btn-action" onclick="showComments(${ticket.id}, '${memberEmail}')">View Comments</button>
+                    <div id="commentForm_${ticket.id}" class="comment-form" style="display: none;">
                         <textarea id="commentInput_${ticket.id}" placeholder="Type your comment here..."></textarea>
-                        <button onclick="sendComment(${ticket.id}, '${memberEmail}')">Send Comment</button>
+                        <button class="btn-primary" onclick="sendComment(${ticket.id}, '${memberEmail}')">Send Comment</button>
                     </div>
-                    <div id="comments_${ticket.id}" style="display: none;">
+                    <div id="comments_${ticket.id}" class="comments-section" style="display: none;">
                         <!-- Comments and replies will be populated here -->
                     </div>
                 </div>
@@ -919,17 +1082,22 @@
                     .then(response => response.json())
                     .then(data => {
                         commentsDiv.innerHTML = ''; // Clear previous comments
-
-                        data.forEach(item => {
-                            const commentElement = document.createElement('div');
-                            commentElement.classList.add('comment');
-                            commentElement.innerHTML = `
+                        if (data.length === 0) {
+                            const noCommentsMessage = document.createElement('div');
+                            noCommentsMessage.classList.add('no-comments');
+                            noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                            commentsDiv.appendChild(noCommentsMessage);
+                        } else {
+                            data.forEach(item => {
+                                const commentElement = document.createElement('div');
+                                commentElement.classList.add('comment');
+                                commentElement.innerHTML = `
                             <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
                             <p>${item.content}</p>
                         `;
-                            commentsDiv.appendChild(commentElement);
-                        });
-
+                                commentsDiv.appendChild(commentElement);
+                            });
+                        }
                         commentsDiv.style.display = 'block'; // Show the comments
                     })
                     .catch(error => {
@@ -959,37 +1127,42 @@
 
 
         function showAdminComments(ticketId, memberEmail) {
-    const commentsDiv = document.getElementById(`adminComments_${ticketId}_${memberEmail}`);
+            const commentsDiv = document.getElementById(`adminComments_${ticketId}_${memberEmail}`);
 
-    // Check if the commentsDiv is currently displayed
-    if (commentsDiv.style.display === 'block') {
-        // If it is displayed, hide it
-        commentsDiv.style.display = 'none';
-    } else {
-        // If it is not displayed, fetch and show comments
-        fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
-            .then(response => response.json())
-            .then(data => {
-                commentsDiv.innerHTML = ''; // Clear previous comments
-
-                // Render comments and replies
-                data.forEach(item => {
-                    const commentElement = document.createElement('div');
-                    commentElement.classList.add('comment');
-                    commentElement.innerHTML = `
+            // Check if the commentsDiv is currently displayed
+            if (commentsDiv.style.display === 'block') {
+                // If it is displayed, hide it
+                commentsDiv.style.display = 'none';
+            } else {
+                // If it is not displayed, fetch and show comments
+                fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        commentsDiv.innerHTML = ''; // Clear previous comments
+                        if (data.length === 0) {
+                            const noCommentsMessage = document.createElement('div');
+                            noCommentsMessage.classList.add('no-comments');
+                            noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                            commentsDiv.appendChild(noCommentsMessage);
+                        } else {
+                            // Render comments and replies
+                            data.forEach(item => {
+                                const commentElement = document.createElement('div');
+                                commentElement.classList.add('comment');
+                                commentElement.innerHTML = `
                         <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
                         <p>${item.content}</p>
                     `;
-                    commentsDiv.appendChild(commentElement);
-                });
-
-                commentsDiv.style.display = 'block'; // Show the comments
-            })
-            .catch(error => {
-                console.error('Error fetching admin comments:', error);
-            });
-    }
-}
+                                commentsDiv.appendChild(commentElement);
+                            });
+                        }
+                        commentsDiv.style.display = 'block'; // Show the comments
+                    })
+                    .catch(error => {
+                        console.error('Error fetching admin comments:', error);
+                    });
+            }
+        }
     </script>
 </body>
 

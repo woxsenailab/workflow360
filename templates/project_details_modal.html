@@ -44,16 +44,56 @@
                 <!-- Comments and replies will be populated here -->
             </div>
 
-            <!-- <button onclick="showCommentsAdmin('{{ ticket[0] }}', '{{ member_email }}')">View Admin Comments</button>
-            <div id="comments_{{ ticket[0] }}_{{  member_email }}" style="display: none;">
-            </div> -->
-            
+            <button onclick="showAdmin('{{ ticket[0] }}', '{{ member_email }}')">View Admin Comments</button>
+            <div id="comments_admin_{{ ticket[0] }}_{{  member_email }}" style="display: none;">
+                <!-- Comments and replies will be populated here -->
+            </div>
+
             <h3>Send Comment to User</h3>
             <form method="POST" action="{{ url_for('send_comment_userAd', ticket_id=ticket[0]) }}">
                 <textarea name="comment" placeholder="Type your comment here..." required></textarea><br>
                 <input type="hidden" name="user_email" value="{{ member_email }}">
                 <button onclick="sendComment('{{ticket[0]}}', '{{member_email}}')">Send Comment</button>
             </form>
+
+            {% if userAd_ticket_comments[ticket[0]] or userAd_ticket_comments_rply[ticket[0]] %}
+            {% set all_comments_and_replies = [] %}
+        
+            {# Combine comments #}
+            {% if userAd_ticket_comments[ticket[0]] %}
+                {% for comment in userAd_ticket_comments[ticket[0]] %}
+                    {% set all_comments_and_replies = all_comments_and_replies + [{'type': 'comment', 'content': comment, 'timestamp': comment[5]}] %}
+                {% endfor %}
+            {% endif %}
+        
+            {# Combine replies #}
+            {% if userAd_ticket_comments_rply[ticket[0]] %}
+                {% for reply in userAd_ticket_comments_rply[ticket[0]] %}
+                    {% set all_comments_and_replies = all_comments_and_replies + [{'type': 'reply', 'content': reply, 'timestamp': reply[5]}] %}
+                {% endfor %}
+            {% endif %}
+        
+            {# Sort all comments and replies by timestamp #}
+            {% set sorted_all_comments_and_replies = all_comments_and_replies | sort(attribute='timestamp') %}
+        
+            {# Display the sorted list of comments and replies #}
+            {% for entry in sorted_all_comments_and_replies %}
+                <div>
+                    {% if entry.type == 'comment' %}
+                        <p><strong>Comment:</strong> {{ entry.content[2] }}</p>
+                        <p><strong>Author:</strong> {{ entry.content[4] }}</p>
+                        <p><strong>Time:</strong> {{ entry.content[5] }}</p>
+                    {% elif entry.type == 'reply' %}
+                        <p><strong>Reply:</strong> {{ entry.content[3] }}</p>
+                        <p><strong>Author:</strong> {{ entry.content[4] }}</p>
+                        <p><strong>Time:</strong> {{ entry.content[5] }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No comments or replies available for this ticket.</p>
+        {% endif %}
+        
 
             {% if ticket[0] in ticket_updates %}
             <div class="updates">
@@ -80,8 +120,10 @@
     {% endif %}
 </div>
 
+</body>
 <script>
     function showComments(ticketId, memberEmail) {
+        console.log(typeof showCommentsAdmin);
         const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
 
         if (commentsDiv.style.display === 'block') {
@@ -92,16 +134,22 @@
                 .then(data => {
                     commentsDiv.innerHTML = ''; // Clear previous comments
 
-                    data.forEach(item => {
-                        const commentElement = document.createElement('div');
-                        commentElement.classList.add('comment');
-                        commentElement.innerHTML = `
+                    if (data.length === 0) {
+                        const noCommentsMessage = document.createElement('div');
+                        noCommentsMessage.classList.add('no-comments');
+                        noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                        commentsDiv.appendChild(noCommentsMessage);
+                    } else {
+                        data.forEach(item => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
                     <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
                     <p>${item.content}</p>
                 `;
-                        commentsDiv.appendChild(commentElement);
-                    });
-
+                            commentsDiv.appendChild(commentElement);
+                        });
+                    }
                     commentsDiv.style.display = 'block'; // Show the comments
                 })
                 .catch(error => {
@@ -109,35 +157,6 @@
                 });
         }
     }
-
-    function showCommentsAdmin(ticketId, memberEmail) {
-            const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
-
-            if (commentsDiv.style.display === 'block') {
-                commentsDiv.style.display = 'none';
-            } else {
-                fetch(`/get_admin_user_comments/${ticketId}/${memberEmail}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        commentsDiv.innerHTML = ''; // Clear previous comments
-
-                        data.forEach(item => {
-                            const commentElement = document.createElement('div');
-                            commentElement.classList.add('comment');
-                            commentElement.innerHTML = `
-                            <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
-                            <p>${item.content}</p>
-                        `;
-                            commentsDiv.appendChild(commentElement);
-                        });
-
-                        commentsDiv.style.display = 'block'; // Show the comments
-                    })
-                    .catch(error => {
-                        console.error('Error fetching comments:', error);
-                    });
-            }
-        }
 
     function sendComment(ticketId, memberEmail) {
         const commentInput = document.querySelector(`textarea[name="comment"]`);
@@ -176,5 +195,39 @@
                 console.error('Error:', error);
             });
     }
-    
+
+    function showAdmin(ticketIds, memberEmail) {
+        const commentsDiv = document.getElementById(`comments_admin_${ticketId}_${memberEmail}`);
+
+        if (commentsDiv.style.display === 'block') {
+            commentsDiv.style.display = 'none';
+        } else {
+            fetch(`/get_admin_comments/${ticketId}/${memberEmail}`)
+                .then(response => response.json())
+                .then(data => {
+                    commentsDiv.innerHTML = ''; // Clear previous comments
+
+                    if (data.length === 0) {
+                        const noCommentsMessage = document.createElement('div');
+                        noCommentsMessage.classList.add('no-comments');
+                        noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                        commentsDiv.appendChild(noCommentsMessage);
+                    } else {
+                        data.forEach(item => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
+                    <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
+                    <p>${item.content}</p>
+                `;
+                            commentsDiv.appendChild(commentElement);
+                        });
+                    }
+                    commentsDiv.style.display = 'block'; // Show the comments
+                })
+                .catch(error => {
+                    console.error('Error fetching comments:', error);
+                });
+        }
+    }
 </script>

@@ -250,6 +250,60 @@
         .reply input[type="submit"]:hover {
             background-color: #1e40af;
         }
+
+        .btn-comment {
+                    background-color: #e63e3e;
+                    padding: 10px 15px;
+                    color: white;
+                }
+
+        .btn-comment:hover {
+                background-color: #c23131;
+        }
+
+        .mcomments-section {
+                    margin-top: 10px;
+                    padding-left: 20px;
+                    font-size: 14px;
+                }
+
+                .mcomments-section {
+                    background-color: #f7f7f7;
+                    border-left: 3px solid #c23131;
+                    padding: 10px;
+                }
+
+        .btn-reply {
+                    background-color: #28a7a7;
+                    padding: 10px 15px;
+                    color: white;
+                }
+
+        .btn-reply:hover {
+                background-color: #239797;
+        }
+
+        .btn-admin {
+                    background-color: #28a745;
+                    padding: 10px 15px;
+                    color: white;
+                }
+
+                .btn-admin:hover {
+                    background-color: #218838;
+                }
+
+                .admin-comments-section {
+                    margin-top: 10px;
+                    padding-left: 20px;
+                    font-size: 14px;
+                }
+
+                .admin-comments-section {
+                    background-color: #f7f7f7;
+                    border-left: 3px solid #28a745;
+                    padding: 10px;
+                }
     </style>
 </head>
 
@@ -354,8 +408,9 @@
                 {% if user_ticket_comments[ticket[0]] %}
                 <div class="comments">
                     <div>
-                        <button onclick="showComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Comments</button>
-                        <button onclick="showReplyForm('{{ ticket[0] }}')">Reply</button>
+                        <button class="btn-comment" onclick="showComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View
+                            Comments</button>
+                        <button class="btn-reply" onclick="showReplyForm('{{ ticket[0] }}')">Reply</button>
                         <div id="replyForm_{{ ticket[0] }}" class="reply-form" style="display:none;">
                             <form method="POST" action="{{ url_for('reply_comment_user', comment_id=ticket[0]) }}">
                                 <textarea name="reply" required placeholder="Type your reply here..."></textarea>
@@ -363,19 +418,21 @@
                             </form>
                         </div>
                     </div>
-                    <div id="comments_{{ ticket[0] }}" style="display: none;">
+                    <div class="mcomments-section" id="comments_{{ ticket[0] }}" style="display: none;">
                         <!-- Comments and replies will be populated here -->
                     </div><br>
                     <div>
-                        <button onclick="showCommentsAdmin(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin Comments</button>
-                        <button onclick="showReplyForm1('{{ ticket[0] }}')">Reply</button>
+                        <button class="btn-admin" onclick="showCommentsAdmin(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin
+                            Comments</button>
+                        <button class="btn-reply" onclick="showReplyForm1('{{ ticket[0] }}')">Reply</button>
                         <div id="replyForm1_{{ ticket[0] }}" class="reply-form" style="display:none;">
-                            <form method="POST" action="{{ url_for('reply_comment_user_admin', comment_id=ticket[0]) }}">
+                            <form method="POST"
+                                action="{{ url_for('reply_comment_user_admin', comment_id=ticket[0]) }}">
                                 <textarea name="reply" required placeholder="Type your reply here..."></textarea>
-                                <input type="submit" value="Send Reply">
+                                <input class="btn-reply" type="submit" value="Send Reply">
                             </form>
                         </div>
-                        <div id="comments_{{ ticket[0] }}_{{session['email']}}" style="display: none;">
+                        <div class="admin-comments-section" id="usad_comments_{{ ticket[0] }}_{{session['email']}}" style="display: none;">
                             <!-- Comments and replies will be populated here -->
                         </div>
                     </div>
@@ -427,15 +484,16 @@
                 <h4>Comments:</h4>
                 {% if ticket_comments[ticket[0]] %}
                 <div class="comments">
-                    <button onclick="showAdminComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin Comments</button>
-                    <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                    <button class="btn-admin" onclick="showAdminComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin
+                        Comments</button>
+                    <div class="admin-comments-section" id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
                         <!-- Admin comments will be populated here -->
                     </div>
-                    <button onclick="showReplyForm2('{{ ticket[0] }}')">Reply</button>
+                    <button class="btn-reply" onclick="showReplyForm2('{{ ticket[0] }}')">Reply</button>
                     <div id="replyForm2_{{ ticket[0] }}" class="reply-form" style="display:none;">
                         <form method="POST" action="{{ url_for('reply_comment', comment_id=ticket[0]) }}">
                             <textarea name="reply" required placeholder="Type your reply here..."></textarea>
-                            <input type="submit" value="Send Reply">
+                            <input class="btn-reply" type="submit" value="Send Reply">
                         </form>
                     </div>
                 </div>
@@ -480,12 +538,14 @@
                     <h3>Commments</h3>
                     {% if user_ticket_comments[ticket[0]] %}
                     <div class="comments">
-                        <button onclick="showComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Comments</button>
-                        <div id="comments_{{ ticket[0] }}" style="display: none;">
+                        <button class="btn-comment" onclick="showComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View
+                            Comments</button>
+                        <div class="mcomments-section" id="comments_{{ ticket[0] }}" style="display: none;">
                             <!-- Comments and replies will be populated here -->
                         </div>
-                        <button onclick="showCommentsAdmin(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin Comments</button>
-                        <div id="comments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                        <button class="btn-admin" onclick="showCommentsAdmin(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin
+                            Comments</button>
+                        <div class="admin-comments-section" id="usad_comments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
                             <!-- Comments and replies will be populated here -->
                         </div>
                     </div>
@@ -518,8 +578,9 @@
                     <h4>Comments:</h4>
                     {% if ticket_comments[ticket[0]] %}
                     <div class="comments">
-                        <button onclick="showAdminComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin Comments</button>
-                        <div id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
+                        <button class="btn-admin" onclick="showAdminComments(`{{ ticket[0] }}`, `{{ session['email'] }}`)">View Admin
+                            Comments</button>
+                        <div class="admin-comments-section" id="adminComments_{{ ticket[0] }}_{{ session['email'] }}" style="display: none;">
                             <!-- Admin comments will be populated here -->
                         </div>
                     </div>
@@ -575,18 +636,23 @@
                     .then(response => response.json())
                     .then(data => {
                         commentsDiv.innerHTML = ''; // Clear previous comments
-
-                        // Render comments and replies
-                        data.forEach(item => {
-                            const commentElement = document.createElement('div');
-                            commentElement.classList.add('comment');
-                            commentElement.innerHTML = `
+                        if (data.length === 0) {
+                            const noCommentsMessage = document.createElement('div');
+                            noCommentsMessage.classList.add('no-comments');
+                            noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                            commentsDiv.appendChild(noCommentsMessage);
+                        } else {
+                            // Render comments and replies
+                            data.forEach(item => {
+                                const commentElement = document.createElement('div');
+                                commentElement.classList.add('comment');
+                                commentElement.innerHTML = `
                         <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
                         <p>${item.content}</p>
                     `;
-                            commentsDiv.appendChild(commentElement);
-                        });
-
+                                commentsDiv.appendChild(commentElement);
+                            });
+                        }
                         commentsDiv.style.display = 'block'; // Show the comments
                     })
                     .catch(error => {
@@ -606,17 +672,22 @@
                     .then(response => response.json())
                     .then(data => {
                         commentsDiv.innerHTML = ''; // Clear previous comments
-
-                        data.forEach(item => {
-                            const commentElement = document.createElement('div');
-                            commentElement.classList.add('comment');
-                            commentElement.innerHTML = `
+                        if (data.length === 0) {
+                            const noCommentsMessage = document.createElement('div');
+                            noCommentsMessage.classList.add('no-comments');
+                            noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                            commentsDiv.appendChild(noCommentsMessage);
+                        } else {
+                            data.forEach(item => {
+                                const commentElement = document.createElement('div');
+                                commentElement.classList.add('comment');
+                                commentElement.innerHTML = `
                             <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
                             <p>${item.content}</p>
                         `;
-                            commentsDiv.appendChild(commentElement);
-                        });
-
+                                commentsDiv.appendChild(commentElement);
+                            });
+                        }
                         commentsDiv.style.display = 'block'; // Show the comments
                     })
                     .catch(error => {
@@ -626,7 +697,7 @@
         }
 
         function showCommentsAdmin(ticketId, memberEmail) {
-            const commentsDiv = document.getElementById(`comments_${ticketId}_${memberEmail}`);
+            const commentsDiv = document.getElementById(`usad_comments_${ticketId}_${memberEmail}`);
 
             if (commentsDiv.style.display === 'block') {
                 commentsDiv.style.display = 'none';
@@ -635,17 +706,22 @@
                     .then(response => response.json())
                     .then(data => {
                         commentsDiv.innerHTML = ''; // Clear previous comments
-
-                        data.forEach(item => {
-                            const commentElement = document.createElement('div');
-                            commentElement.classList.add('comment');
-                            commentElement.innerHTML = `
+                        if (data.length === 0) {
+                            const noCommentsMessage = document.createElement('div');
+                            noCommentsMessage.classList.add('no-comments');
+                            noCommentsMessage.innerHTML = '<em>No comments available.</em>';
+                            commentsDiv.appendChild(noCommentsMessage);
+                        } else {
+                            data.forEach(item => {
+                                const commentElement = document.createElement('div');
+                                commentElement.classList.add('comment');
+                                commentElement.innerHTML = `
                             <strong>${item.user} - ${new Date(item.timestamp).toLocaleString()}:</strong>
                             <p>${item.content}</p>
                         `;
-                            commentsDiv.appendChild(commentElement);
-                        });
-
+                                commentsDiv.appendChild(commentElement);
+                            });
+                        }
                         commentsDiv.style.display = 'block'; // Show the comments
                     })
                     .catch(error => {
@@ -653,7 +729,7 @@
                     });
             }
         }
-        
+
         function showReplyForm(commentId) {
             const replyForm = document.getElementById(`replyForm_${commentId}`);
             if (replyForm) {
